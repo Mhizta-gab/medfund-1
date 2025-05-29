@@ -178,14 +178,13 @@ const Analytics = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col gap-2 items-start mb-8 sm:flex-row sm:justify-between sm:items-center">
         <h2 className="text-2xl font-bold text-gray-900">Campaign Analytics</h2>
         
-        <div className="flex items-center gap-2 space-x-4">
-
-          
+        {/* Make this container horizontally scrollable on mobile and stack below heading */}
+        <div className="w-full flex items-center gap-2 space-x-4 overflow-x-auto flex-nowrap mt-4 sm:mt-0 sm:w-auto sm:overflow-visible sm:flex-nowrap px-3">
           {/* Date Range Filters */}
-          <div className="flex  items-center space-x-2">
+          <div className="flex items-center space-x-2">
             <div className="flex space-x-2">
               {['1m', '3m', '6m', '1y', 'all'].map((range) => (
                 <button

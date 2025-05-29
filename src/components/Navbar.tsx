@@ -2,6 +2,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import Image from 'next/image';
+import logo from '../../public/images/MedFund_Logo.png';
 
 const Navbar = () => {
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -21,7 +23,7 @@ const Navbar = () => {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="text-2xl font-bold text-blue-600">
-                MedFund
+                <Image src={logo} width={100} height={100} alt='MedFund_Logo' />
               </Link>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-4">

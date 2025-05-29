@@ -4,6 +4,8 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { AuthProvider } from '@/context/AuthContext';
+import { BlockchainProvider } from '@/blockchain/context/BlockchainContext';
+import { CardanoWalletProvider } from '@/blockchain/context/WalletContext';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,9 +23,13 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
-          <Navbar />
-          <main className="pt-16 min-h-screen">{children}</main>
-          <Footer />
+          <BlockchainProvider>
+            <CardanoWalletProvider>
+              <Navbar />
+              <main className="pt-16 min-h-screen">{children}</main>
+              <Footer />
+            </CardanoWalletProvider>
+          </BlockchainProvider>
         </AuthProvider>
       </body>
     </html>

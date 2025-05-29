@@ -14,16 +14,24 @@ const campaigns = [
     imageUrl: '/images/campaign1.jpeg',
     daysLeft: 15,
     verified: true,
+    goal: 50000,
+    raised: 35000,
+    category: 'Surgery',
+    urgency: 'High',
   },
   {
     id: '2',
     title: 'Cancer Treatment Support',
-    description: 'Support Sarah battle against breast cancer.',
+    description: 'Support Sarah battle against breast cancer. Your donation can make a difference.',
     goalAmount: 75000,
     raisedAmount: 45000,
     imageUrl: '/images/campaign2.jpg',
     daysLeft: 30,
     verified: true,
+    goal: 75000,
+    raised: 45000,
+    category: 'Cancer',
+    urgency: 'Medium',
   },
   {
     id: '3',
@@ -34,6 +42,10 @@ const campaigns = [
     imageUrl: '/images/campaign3.jpg',
     daysLeft: 20,
     verified: true,
+    goal: 25000,
+    raised: 15000,
+    category: 'Pediatrics',
+    urgency: 'Medium',
   },
   // Add more campaigns as needed
 ];
@@ -116,7 +128,7 @@ export default function CampaignsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {filteredCampaigns.map((campaign) => (
-            <CampaignCard key={campaign.id} {...campaign} />
+            <CampaignCard campaign={campaign} key={campaign.id} />
           ))}
         </div>
       )}

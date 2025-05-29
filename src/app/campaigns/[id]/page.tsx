@@ -29,48 +29,63 @@ interface CampaignDetails {
   }>;
 }
 
-// Mock data - In a real application, this would come from your backend/blockchain
-const campaignData: CampaignDetails = {
-  id: '1',
-  title: 'Emergency Heart Surgery',
-  description: 'Help John receive life-saving heart surgery at Central Hospital. Your contribution can make a difference in saving a life. The surgery is scheduled for next month, and we need to raise the funds as soon as possible.',
-  goalAmount: 50000,
-  raisedAmount: 35000,
-  imageUrl: '/images/campaign1.jpg',
-  daysLeft: 15,
-  verified: true,
-  patientInfo: {
-    name: 'John Doe',
-    age: 45,
-    condition: 'Coronary Artery Disease',
-    hospital: 'Central Hospital',
+// Mock campaigns array
+const campaigns: CampaignDetails[] = [
+  {
+    id: '1',
+    title: 'Emergency Heart Surgery',
+    description: 'Help John receive life-saving heart surgery at Central Hospital. Your contribution can make a difference in saving a life. The surgery is scheduled for next month, and we need to raise the funds as soon as possible.',
+    goalAmount: 50000,
+    raisedAmount: 35000,
+    imageUrl: '/images/campaign1.jpeg',
+    daysLeft: 15,
+    verified: true,
+    patientInfo: {
+      name: 'John Doe',
+      age: 45,
+      condition: 'Coronary Artery Disease',
+      hospital: 'Central Hospital',
+    },
+    updates: [
+      {
+        date: '2024-04-01',
+        content: 'Medical evaluation completed. Surgery scheduled for next month.',
+      },
+      {
+        date: '2024-03-28',
+        content: 'Initial consultation with cardiac surgeon completed.',
+      },
+    ],
+    donors: [
+      {
+        address: 'addr1q8f4z...',
+        amount: 1000,
+        timestamp: '2024-04-01T10:30:00Z',
+      },
+      {
+        address: 'addr1v9m2h...',
+        amount: 500,
+        timestamp: '2024-03-31T15:45:00Z',
+      },
+    ],
   },
-  updates: [
-    {
-      date: '2024-04-01',
-      content: 'Medical evaluation completed. Surgery scheduled for next month.',
-    },
-    {
-      date: '2024-03-28',
-      content: 'Initial consultation with cardiac surgeon completed.',
-    },
-  ],
-  donors: [
-    {
-      address: 'addr1q8f4z...',
-      amount: 1000,
-      timestamp: '2024-04-01T10:30:00Z',
-    },
-    {
-      address: 'addr1v9m2h...',
-      amount: 500,
-      timestamp: '2024-03-31T15:45:00Z',
-    },
-  ],
-};
+  // Add more campaigns as needed
+];
 
 export default function CampaignPage({ params }: { params: { id: string } }) {
   const [donationAmount, setDonationAmount] = useState<string>('');
+
+  // Find the campaign by id
+  const campaignData = campaigns.find(c => c.id === params.id);
+
+  if (!campaignData) {
+    return (
+      <div className="max-w-2xl mx-auto py-16 text-center">
+        <h1 className="text-2xl font-bold mb-4">Campaign Not Found</h1>
+        <p className="text-gray-600">The campaign you are looking for does not exist.</p>
+      </div>
+    );
+  }
 
   const handleDonate = async () => {
     // TODO: Implement Cardano wallet integration and transaction
@@ -203,4 +218,4 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
       </div>
     </div>
   );
-} 
+}

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { MeshProvider } from '@meshsdk/react';
 import { Blockfrost, Lucid, Network, Provider, LucidEvolution } from '@lucid-evolution/lucid';
+import { toast } from 'sonner';
 
 interface BlockchainContextProps {
   network: string;
@@ -53,7 +54,9 @@ export const BlockchainProvider: React.FC<BlockchainProviderProps> = ({ children
         setError(null);
       } catch (err: any) {
         console.error('Failed to initialize Lucid with Blockfrost provider:', err);
-        setError(`Failed to initialize Lucid: ${err.message}`);
+        const errorMsg = `Failed to initialize Lucid: ${err.message}`;
+        setError(errorMsg);
+        toast.error(errorMsg);
       } finally {
         setIsLoading(false);
       }
@@ -61,6 +64,14 @@ export const BlockchainProvider: React.FC<BlockchainProviderProps> = ({ children
 
     initLucid();
   }, [network]);
+
+  // Configure MeshProvider options
+  const meshConfig = {
+    clientId: process.env.NEXT_PUBLIC_MESH_CLIENT_ID || undefined,
+    // More options can be added here as needed
+    // autoConnect: true, 
+    // autoConnectWallet: lastUsedWallet,
+  };
 
   return (
     <BlockchainContext.Provider
@@ -71,7 +82,7 @@ export const BlockchainProvider: React.FC<BlockchainProviderProps> = ({ children
         error
       }}
     >
-      <MeshProvider>
+      <MeshProvider {...meshConfig}>
         {children}
       </MeshProvider>
     </BlockchainContext.Provider>

@@ -16,9 +16,13 @@ interface CardanoWalletContextProps {
   disconnectWallet: () => void;
   error: string | null;
   activeWallet: any | null; // Using any for now to bypass type import issues
+  lastUsedWallet: string | null;
 }
 
 const CardanoWalletContext = createContext<CardanoWalletContextProps | undefined>(undefined);
+
+// Local storage key for remembering last used wallet
+const LAST_WALLET_KEY = 'medfund_last_wallet';
 
 interface CardanoWalletProviderProps {
   children: ReactNode;
@@ -31,7 +35,10 @@ export const CardanoWalletProvider: React.FC<CardanoWalletProviderProps> = ({ ch
   const [walletBalance, setWalletBalance] = useState<string | null>(null); 
   const [availableWallets, setAvailableWallets] = useState<{ name: string; icon: string; version: string }[]>([]);
   const [customError, setCustomError] = useState<string | null>(null);
+  const [lastUsedWallet, setLastUsedWallet] = useState<string | null>(null);
+  const [directWallet, setDirectWallet] = useState<any | null>(null);
 
+  // Load available wallets and last used wallet from local storage
   useEffect(() => {
     // Only run in browser environment
     if (typeof window === 'undefined') {
@@ -42,6 +49,12 @@ export const CardanoWalletProvider: React.FC<CardanoWalletProviderProps> = ({ ch
       try {
         const wallets = BrowserWallet.getInstalledWallets();
         setAvailableWallets(wallets.map(w => ({ name: w.name, icon: w.icon, version: w.version })));
+        
+        // Check for last used wallet
+        const savedWallet = localStorage.getItem(LAST_WALLET_KEY);
+        if (savedWallet) {
+          setLastUsedWallet(savedWallet);
+        }
       } catch (err) {
         console.error('Failed to load available wallets:', err);
         setCustomError('Failed to load wallet list');
@@ -51,6 +64,30 @@ export const CardanoWalletProvider: React.FC<CardanoWalletProviderProps> = ({ ch
     loadAvailableWallets();
   }, []);
 
+  // Auto-connect to last used wallet
+  useEffect(() => {
+    if (typeof window === 'undefined' || !lastUsedWallet || connected || connecting) {
+      return;
+    }
+
+    // Auto-connect to last used wallet if available
+    const autoConnect = async () => {
+      try {
+        // Check if the wallet is installed
+        const isWalletAvailable = availableWallets.some(w => w.name.toLowerCase() === lastUsedWallet.toLowerCase());
+        
+        if (isWalletAvailable) {
+          await handleConnect(lastUsedWallet);
+        }
+      } catch (err) {
+        console.error('Auto-connect failed:', err);
+        // Don't show error for auto-connect failures
+      }
+    };
+
+    autoConnect();
+  }, [lastUsedWallet, availableWallets, connected, connecting]);
+
   useEffect(() => {
     // Only run in browser environment
     if (typeof window === 'undefined') {
@@ -58,12 +95,15 @@ export const CardanoWalletProvider: React.FC<CardanoWalletProviderProps> = ({ ch
     }
     
     const updateWalletInfo = async () => {
-      if (connected && wallet) {
+      // Use either direct wallet or mesh wallet
+      const activeWallet = directWallet || wallet;
+      
+      if (connected && activeWallet) {
         try {
-          const addresses = await wallet.getUsedAddresses();
+          const addresses = await activeWallet.getUsedAddresses();
           setWalletAddress(addresses.length > 0 ? addresses[0] : null);
           
-          const balanceAssets = await wallet.getBalance();
+          const balanceAssets = await activeWallet.getBalance();
           const adaBalance = balanceAssets.find(asset => asset.unit === 'lovelace');
           setWalletBalance(adaBalance ? (BigInt(adaBalance.quantity) / BigInt(1000000)).toString() : '0');
           setCustomError(null);
@@ -78,12 +118,45 @@ export const CardanoWalletProvider: React.FC<CardanoWalletProviderProps> = ({ ch
     };
 
     updateWalletInfo();
-  }, [connected, wallet]);
+  }, [connected, wallet, directWallet]);
 
   const handleConnect = async (walletNameToConnect: string): Promise<boolean> => {
     setCustomError(null);
     try {
+      // Try direct connection first using BrowserWallet.enable
+      try {
+        const enabledWallet = await BrowserWallet.enable(walletNameToConnect);
+        if (enabledWallet) {
+          setDirectWallet(enabledWallet);
+          
+          // Get address to verify connection
+          const addresses = await enabledWallet.getUsedAddresses();
+          setWalletAddress(addresses.length > 0 ? addresses[0] : null);
+          
+          // Get balance
+          const balanceAssets = await enabledWallet.getBalance();
+          const adaBalance = balanceAssets.find(asset => asset.unit === 'lovelace');
+          setWalletBalance(adaBalance ? (BigInt(adaBalance.quantity) / BigInt(1000000)).toString() : '0');
+          
+          // Save last used wallet
+          localStorage.setItem(LAST_WALLET_KEY, walletNameToConnect);
+          setLastUsedWallet(walletNameToConnect);
+          
+          return true;
+        }
+      } catch (directErr) {
+        console.warn('Direct wallet connection failed, falling back to Mesh hook:', directErr);
+        // If direct connection fails, fall back to the Mesh hook
+        setDirectWallet(null);
+      }
+      
+      // Fallback to Mesh hook
       await connect(walletNameToConnect);
+      
+      // Save last used wallet
+      localStorage.setItem(LAST_WALLET_KEY, walletNameToConnect);
+      setLastUsedWallet(walletNameToConnect);
+      
       return true;
     } catch (err: any) {
       console.error(`Failed to connect ${walletNameToConnect}:`, err);
@@ -95,7 +168,19 @@ export const CardanoWalletProvider: React.FC<CardanoWalletProviderProps> = ({ ch
   const handleDisconnect = () => {
     setCustomError(null);
     try {
-      disconnect();
+      // Clear direct wallet if used
+      if (directWallet) {
+        setDirectWallet(null);
+      }
+      
+      // Also disconnect Mesh hook if connected
+      if (connected) {
+        disconnect();
+      }
+      
+      // Reset state
+      setWalletAddress(null);
+      setWalletBalance(null);
     } catch (err: any) {
       console.error('Failed to disconnect wallet:', err);
       setCustomError('Failed to disconnect wallet: ' + err.message);
@@ -112,19 +197,25 @@ export const CardanoWalletProvider: React.FC<CardanoWalletProviderProps> = ({ ch
     return null;
   };
 
+  // Determine if we're connected via either method
+  const isConnected = Boolean(connected || directWallet);
+  // Use the direct wallet name or the mesh wallet name
+  const actualWalletName = directWallet ? lastUsedWallet : connectedWalletName;
+
   return (
     <CardanoWalletContext.Provider
       value={{
-        connected,
+        connected: isConnected,
         connectingMesh: connecting,
-        walletName: connectedWalletName || null, 
+        walletName: actualWalletName || null, 
         walletAddress,
         walletBalance,
         availableWallets,
         connectWallet: handleConnect,
         disconnectWallet: handleDisconnect,
         error: getCombinedError(),
-        activeWallet: wallet || null 
+        activeWallet: directWallet || wallet || null,
+        lastUsedWallet
       }}
     >
       {children}

@@ -1,7 +1,7 @@
-import { BlockFrostIPFS } from '@blockfrost/blockfrost-js';
+// import { BlockFrostIPFS } from '@blockfrost/blockfrost-js';
 
 export class IPFSService {
-  private ipfs: BlockFrostIPFS | null = null;
+  // private ipfs: BlockFrostIPFS | null = null;
   private apiKey: string;
   private apiUrl: string = 'https://ipfs.blockfrost.io/api/v0';
   public gatewayUrl: string = 'https://ipfs.blockfrost.io/ipfs/'; // Default gateway
@@ -13,13 +13,13 @@ export class IPFSService {
     }
     this.apiKey = apiKey;
     
-    // Only create BlockFrostIPFS instance if we're in a Node.js environment
-    if (typeof window === 'undefined') {
-      // Server-side
-      this.ipfs = new BlockFrostIPFS({
-        projectId: apiKey,
-      });
-    }
+    // We no longer create a BlockFrostIPFS instance - we'll use fetch API for everything
+    // if (typeof window === 'undefined') {
+    //   // Server-side
+    //   this.ipfs = new BlockFrostIPFS({
+    //     projectId: apiKey,
+    //   });
+    // }
     
     if (gatewayUrl) {
       this.gatewayUrl = gatewayUrl.endsWith('/') ? gatewayUrl : `${gatewayUrl}/`;

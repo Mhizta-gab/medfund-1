@@ -2,10 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   eslint: {
-    ignoreDuringBuilds: true
+    ignoreDuringBuilds: false
   },
   typescript: {
-    ignoreBuildErrors: true
+    ignoreBuildErrors: false
   },
   // Enable WebAssembly support needed for Lucid/Cardano libraries
   webpack: (config) => {
@@ -33,6 +33,10 @@ const nextConfig: NextConfig = {
       https: false,
       zlib: false,
       querystring: false,
+      dns: false,
+      net: false,
+      tls: false,
+      child_process: false,
     };
 
     return config;

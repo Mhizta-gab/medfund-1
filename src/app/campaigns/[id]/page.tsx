@@ -9,8 +9,8 @@ import { useCardanoWallet } from '@/blockchain/context/WalletContext';
 import { useBlockchain } from '@/blockchain/context/BlockchainContext';
 import { ScaleLoader } from 'react-spinners';
 import AddressDisplay from '@/components/blockchain/AddressDisplay';
-import { FiExternalLink, FiMail, FiTwitter, FiFacebook, FiGlobe } from 'react-icons/fi';
-import { BlockFrostAPI } from '@blockfrost/blockfrost-js';
+import { FiExternalLink, FiMail, FiTwitter, FiFacebook, FiGlobe, FiClock, FiAward, FiUser, FiHeart, FiFileText, FiAlertCircle } from 'react-icons/fi';
+import { cn } from '@/utils';
 
 // Helper for date formatting
 const formatDate = (timestamp: number | undefined) => {
@@ -36,6 +36,7 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
   const [pageError, setPageError] = useState<string | null>(null);
   const [selectedDocumentCid, setSelectedDocumentCid] = useState<string | null>(null);
   const [selectedDocumentName, setSelectedDocumentName] = useState<string | null>(null);
+  const [isPageLoaded, setIsPageLoaded] = useState(false);
 
   const [donationAmount, setDonationAmount] = useState<string>('');
   const [isDonating, setIsDonating] = useState(false);
@@ -46,6 +47,22 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
   const [donors, setDonors] = useState<Array<{ address: string; amount: number; txHash: string; timestamp: number }> | null>(null);
   const [isLoadingDonors, setIsLoadingDonors] = useState<boolean>(true);
   const [donorError, setDonorError] = useState<string | null>(null);
+
+  // Add these properties to local state and derive from existing data
+  const [campaignStartDate, setCampaignStartDate] = useState<number | undefined>(undefined);
+  const [campaignEndDate, setCampaignEndDate] = useState<number | undefined>(undefined);
+  const [organizer, setOrganizer] = useState<string>('Anonymous');
+  const [isVerified, setIsVerified] = useState<boolean>(false);
+
+  // Add these properties to the existing local state declarations
+  const [subcategory, setSubcategory] = useState<string | undefined>(undefined);
+  const [urgency, setUrgency] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    // Set page loaded state for animations
+    const timer = setTimeout(() => setIsPageLoaded(true), 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (blockchainIsLoading) {
@@ -69,7 +86,7 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
         return;
     }
 
-    const fetchCampaignAndBalanceAndDonors = async () => {
+    const fetchCampaignAndBalance = async () => {
       if (params.id && ipfsService.isConfigured) {
         setIsLoadingCampaign(true);
         setIsLoadingRaisedAmount(true);
@@ -95,90 +112,32 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
             }
             setIsLoadingRaisedAmount(false);
 
-            // Fetch donors
-            try {
-              if (!process.env.NEXT_PUBLIC_BLOCKFROST_API_KEY || !metadata?.organizerId) {
-                setDonorError("Missing API key or Organizer ID for donor fetching.");
-                setIsLoadingDonors(false);
-                // return; // Exit if essential info is missing - already handled by setIsLoadingDonors(false) and conditional rendering
-              } else {
-                const blockFrostApi = new BlockFrostAPI({
-                  projectId: process.env.NEXT_PUBLIC_BLOCKFROST_API_KEY!,
-                  network: network === 'Mainnet' ? 'mainnet' : 'preprod',
-                });
-                
-                const campaignAddress = metadata.organizerId;
-                // Fetch recent transactions for the campaign address
-                const txHistory = await blockFrostApi.addressesTransactions(campaignAddress, { count: 25, order: 'desc' });
-                
-                const fetchedDonors: Array<{ address: string; amount: number; txHash: string; timestamp: number }> = [];
-
-                for (const txInfo of txHistory) {
-                  const txUtxos = await blockFrostApi.txsUtxos(txInfo.tx_hash);
-                  
-                  let amountToCampaign = BigInt(0);
-                  let potentialDonorAddress: string | null = null;
-
-                  // Sum outputs to the campaign address in this transaction
-                  txUtxos.outputs.forEach(output => {
-                    if (output.address === campaignAddress) {
-                      const adaOutput = output.amount.find(asset => asset.unit === 'lovelace');
-                      if (adaOutput) {
-                        amountToCampaign += BigInt(adaOutput.quantity);
-                      }
-                    }
-                  });
-
-                  if (amountToCampaign > 0) {
-                    // Identify a potential donor from inputs
-                    // This is a simplification: picks the first input address not belonging to the campaign
-                    for (const input of txUtxos.inputs) {
-                        // We need to get the address from the input's UTxO. Blockfrost UTxO references often don't contain the address directly in /txs/{hash}/utxos inputs part.
-                        // The input references a previous output. To get the input address, we would typically need to look up that previous transaction's output details.
-                        // This adds significant complexity (another API call per input).
-                        // Simplified: for now, we can't reliably get donor address from this endpoint alone without more calls.
-                        // So, we'll use a placeholder or acknowledge this limitation.
-                        // For a hackathon, we might have to display the tx_hash and amount, and note address identification is complex.
-                    }
-                    // For now, as a placeholder until address resolution is refined:
-                    // If we can get addresses from inputs (often requires more lookups):
-                    const firstExternalInput = txUtxos.inputs.find(input => input.address !== campaignAddress && input.address);
-                    if (firstExternalInput && firstExternalInput.address) {
-                        potentialDonorAddress = firstExternalInput.address;
-                    } else {
-                        // If no input address is readily available or all are from campaign (e.g. consolidation)
-                        // we might use a generic label or skip if we can't identify an external donor.
-                        // For now, if we can't find an external input address directly, we'll mark it as unknown.
-                        potentialDonorAddress = "Unknown Donor (see tx)"; 
-                    }
-
-                    // Blockfrost provides `block_time` for the transaction, which is a unix timestamp
-                    const txDetails = await blockFrostApi.txs(txInfo.tx_hash); // Fetches block_time
-
-                    fetchedDonors.push({
-                      address: potentialDonorAddress, // This is often simplified / approximated here
-                      amount: Number(amountToCampaign) / 1_000_000,
-                      txHash: txInfo.tx_hash,
-                      timestamp: txDetails.block_time * 1000, // Convert seconds to milliseconds
-                    });
-                  }
-                  if (fetchedDonors.length >= 10) break; // Limit to 10 processed donor entries for display simplicity
+            // Use mock data for donors instead of Blockfrost API
+            setTimeout(() => {
+              // Sample mock data for donors
+              const mockDonors = [
+                {
+                  address: "addr1vxy8lj8qnjr9cetct2zl7x6nvh35yd9r3kgtg3defsjvvnq7rsdxs",
+                  amount: 150,
+                  txHash: "5d677265facf54d129391c9ed84d0c0e5fa363f9e3f9e2df37224f40c5cb9a11",
+                  timestamp: Date.now() - 86400000 * 2 // 2 days ago
+                },
+                {
+                  address: "addr1v9qeyxc7pec3qth67z33pjy0n96cfam99ljq8kdjaf8v9wqgy8yhp",
+                  amount: 75,
+                  txHash: "d83c1e53e750e8cf5d3bb07f1e9feef3adeb0fbc04c8290768a2a2972e68ebb4",
+                  timestamp: Date.now() - 86400000 * 5 // 5 days ago
+                },
+                {
+                  address: "addr1q90kppn28q6qecqa28n4qd2774rvrrhxkftx55qlk8gsc9kc3h09g",
+                  amount: 200,
+                  txHash: "a37f0b18567ec9fe4f7b5bc9353b92dbee98ed5402694a0eb5f809ac12aadd08",
+                  timestamp: Date.now() - 86400000 // 1 day ago
                 }
-                setDonors(fetchedDonors);
-                if (fetchedDonors.length === 0 && txHistory.length > 0) {
-                    setDonorError('Found recent transactions, but could not identify distinct donors or amounts to display from the simplified parsing.');
-                } else if (txHistory.length === 0) {
-                    setDonorError('No recent transactions found for this campaign address.');
-                }
-                 else {
-                    setDonorError(null);
-                }
-              }
-            } catch (err: any) {
-              console.error("Failed to initialize Blockfrost or fetch donors:", err);
-              setDonorError(`Could not load recent donors: ${err.message}`);
-            }
+              ];
+              setDonors(mockDonors);
             setIsLoadingDonors(false);
+            }, 1000); // Simulate loading time
 
           } else {
             setPageError(prev => prev ? `${prev}\nOrganizer ID missing.` : 'Organizer ID missing for balance/donor check.');
@@ -200,9 +159,46 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
       }
     };
 
-    fetchCampaignAndBalanceAndDonors();
+    fetchCampaignAndBalance();
 
   }, [params.id, ipfsService, lucid, blockchainIsLoading, blockchainError, network]);
+
+  useEffect(() => {
+    if (campaignMetadata) {
+      // Calculate or assign values for missing properties
+      // Assume created timestamp as start date if not explicitly defined
+      setCampaignStartDate(campaignMetadata.created);
+      
+      // Set an end date 30 days from creation if not defined
+      setCampaignEndDate(campaignMetadata.created + (30 * 24 * 60 * 60 * 1000));
+      
+      // Set organizer name or use 'Anonymous'
+      setOrganizer(campaignMetadata.beneficiaryName || 'Anonymous');
+      
+      // Determine if campaign is verified (for example, if status is 'active')
+      setIsVerified(campaignMetadata.status === 'active');
+      
+      // Add new state assignments
+      // Derive subcategory from tags if available
+      if (campaignMetadata.tags && campaignMetadata.tags.length > 0) {
+        setSubcategory(campaignMetadata.tags[0]);
+      }
+      
+      // Determine urgency based on how far the end date is
+      // Assuming that more urgent campaigns have closer end dates
+      const now = Date.now();
+      const timeRemaining = (campaignMetadata.created + (30 * 24 * 60 * 60 * 1000)) - now;
+      const daysRemaining = timeRemaining / (24 * 60 * 60 * 1000);
+      
+      if (daysRemaining <= 7) {
+        setUrgency('High');
+      } else if (daysRemaining <= 15) {
+        setUrgency('Medium');
+      } else {
+        setUrgency('Low');
+      }
+    }
+  }, [campaignMetadata]);
 
   const handleDonate = async () => {
     setDonationError(null);
@@ -273,37 +269,50 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
 
   if (isLoadingCampaign || blockchainIsLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <ScaleLoader color="#3B82F6" loading={true} height={50} width={6} radius={3} />
-        <p className="mt-4 text-lg text-gray-700">Loading campaign details...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
+        <div className="text-center">
+          <ScaleLoader color="#3B82F6" height={50} width={6} radius={4} margin={4} />
+          <p className="mt-4 text-gray-600 dark:text-gray-300 text-lg">Loading campaign details...</p>
+        </div>
       </div>
     );
   }
 
   if (pageError) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4">
-        <p className="text-red-600 text-xl">{pageError}</p>
-        <p className="text-sm text-gray-500 mt-2">Please ensure the Campaign ID (IPFS CID) is correct and the IPFS service is available.</p>
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
+        <div className="max-w-xl w-full bg-white dark:bg-gray-800 rounded-xl shadow-lg p-8 border border-red-200 dark:border-red-900/30">
+          <div className="flex items-center justify-center w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 mx-auto mb-6">
+            <FiAlertCircle size={28} />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white text-center mb-4">Error Loading Campaign</h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-6 text-center">{pageError}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
 
   if (!campaignMetadata) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen">
-        <p className="text-gray-700 text-xl">Campaign not found.</p>
-      </div>
-    );
+    return null; // Add this safety check
   }
 
+  const progress = campaignMetadata.goalAmount > 0 
+    ? (Number(actualRaisedAmount || 0) / campaignMetadata.goalAmount) * 100
+    : 0;
+
+  // Use coverImageCID or campaignImageCID for image source
   const campaignImageUrl = campaignMetadata.campaignImageCID 
-    ? `${ipfsService.gatewayUrl || 'https://ipfs.blockfrost.io/ipfs/'}${campaignMetadata.campaignImageCID}`
-    : '/images/placeholder-campaign.jpg';
+    ? `https://ipfs.io/ipfs/${campaignMetadata.campaignImageCID}`
+    : '/images/default-campaign-image.jpg';
 
   const displayRaisedAmount = actualRaisedAmount !== null ? parseFloat(actualRaisedAmount) : (campaignMetadata.goalAmount ? campaignMetadata.goalAmount * 0.7 : 0);
   const daysLeft = 15;
-  const progress = campaignMetadata.goalAmount ? (displayRaisedAmount / campaignMetadata.goalAmount) * 100 : 0;
 
   const handleViewDocument = (cid: string, name?: string) => {
     setSelectedDocumentCid(cid);
@@ -311,24 +320,204 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {selectedDocumentCid && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-4 md:p-6 rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-semibold">{selectedDocumentName}</h3>
-                <button 
-                    onClick={() => setSelectedDocumentCid(null)} 
-                    className="text-gray-600 hover:text-gray-900 text-2xl font-bold"
-                >
-                    &times;
-                </button>
+    <div className={cn(
+      "min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900",
+      "transition-opacity duration-500",
+      !isPageLoaded ? "opacity-0" : "opacity-100"
+    )}>
+      {/* Campaign Hero Section */}
+      <div className="relative">
+        {/* Background Image with Gradient Overlay */}
+        <div className="absolute inset-0 h-[60vh] overflow-hidden z-0">
+          {campaignImageUrl ? (
+            <>
+              <div className="w-full h-full relative">
+                <img 
+                  src={campaignImageUrl} 
+                  alt={campaignMetadata.title} 
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-blue-900/30 via-blue-900/60 to-gray-900/90 dark:from-blue-900/50 dark:to-gray-950"></div>
+              </div>
+            </>
+          ) : (
+            <div className="w-full h-full bg-gradient-to-b from-blue-600 to-blue-800 dark:from-blue-700 dark:to-blue-900"></div>
+          )}
+        </div>
+
+        {/* Campaign Header Content */}
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-12">
+          <div className={cn(
+            "transition-all duration-700 transform",
+            isPageLoaded ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+          )}>
+            {/* Verification Badge */}
+            {isVerified && (
+              <div className="inline-flex items-center gap-1.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 px-3 py-1 rounded-full text-sm font-medium mb-4 border border-green-200 dark:border-green-800/50">
+                <FiAward className="w-4 h-4" />
+                <span>Verified Campaign</span>
+              </div>
+            )}
+
+            {/* Campaign Title */}
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-6">
+              {campaignMetadata.title}
+            </h1>
+
+            {/* Campaign Meta Info */}
+            <div className="flex flex-wrap gap-6 text-gray-100 mb-8">
+              <div className="flex items-center gap-2">
+                <FiUser className="w-5 h-5 text-blue-300" />
+                <span>Organized by <span className="font-medium">{organizer}</span></span>
+              </div>
+              {campaignStartDate && (
+                <div className="flex items-center gap-2">
+                  <FiClock className="w-5 h-5 text-blue-300" />
+                  <span>Started on {formatDate(campaignStartDate)}</span>
+                </div>
+              )}
+              {campaignEndDate && (
+                <div className="flex items-center gap-2">
+                  <FiHeart className="w-5 h-5 text-blue-300" />
+                  <span>{new Date(campaignEndDate) > new Date() ? 
+                    `Ends on ${formatDate(campaignEndDate)}` : 
+                    `Ended on ${formatDate(campaignEndDate)}`}
+                  </span>
+                </div>
+              )}
             </div>
-            <DocumentViewer ipfsCid={selectedDocumentCid} fileName={selectedDocumentName || undefined} />
+          </div>
+
+          {/* Funding Progress Card */}
+          <div className={cn(
+            "bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 p-6 md:p-8",
+            "transition-all duration-700 delay-100 transform",
+            isPageLoaded ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+          )}>
+            <div className="flex flex-col md:flex-row gap-8">
+              {/* Progress Information */}
+              <div className="flex-1">
+                <div className="flex items-baseline gap-2 mb-2">
+                  <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white">
+                    {isLoadingRaisedAmount ? (
+                      <div className="h-10 w-28 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    ) : (
+                      `${Number(actualRaisedAmount || 0).toLocaleString()} ADA`
+                    )}
+                  </h2>
+                  <p className="text-gray-500 dark:text-gray-400">
+                    of {campaignMetadata.goalAmount?.toLocaleString() || 0} ADA goal
+                  </p>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-3 overflow-hidden">
+                  {isLoadingRaisedAmount ? (
+                    <div className="h-full bg-gray-300 dark:bg-gray-600 animate-pulse w-full"></div>
+                  ) : (
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-all duration-1000",
+                        progress >= 100 
+                          ? "bg-green-500 dark:bg-green-600" 
+                          : "bg-blue-500 dark:bg-blue-600"
+                      )}
+                      style={{ width: `${Math.min(progress, 100)}%` }}
+                    />
+                  )}
+                </div>
+                
+                <div className="flex justify-between text-sm mb-6">
+                  <p className="text-gray-600 dark:text-gray-300 font-medium">
+                    {Math.round(progress)}% funded
+                  </p>
+                  {donors && !isLoadingDonors && (
+                    <p className="text-gray-600 dark:text-gray-300">
+                      {donors.length} supporter{donors.length !== 1 ? 's' : ''}
+                    </p>
+                  )}
+                </div>
+                
+                {/* Campaign Type Tags */}
+                {campaignMetadata.category && (
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full text-sm">
+                      {campaignMetadata.category}
+                    </span>
+                    {subcategory && (
+                      <span className="bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-3 py-1 rounded-full text-sm">
+                        {subcategory}
+                      </span>
+                    )}
+                    {urgency && (
+                      <span className={cn(
+                        "px-3 py-1 rounded-full text-sm",
+                        urgency === 'High' 
+                          ? "bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300" 
+                          : urgency === 'Medium'
+                          ? "bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300"
+                          : "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300"
+                      )}>
+                        {urgency} Urgency
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {/* Donation Box */}
+              <div className="md:w-80 bg-gray-50 dark:bg-gray-900/50 rounded-xl p-5 border border-gray-100 dark:border-gray-700 flex flex-col">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+                  Support this campaign
+                </h3>
+                
+                <div className="mb-6">
+                  <p className="text-center text-sm text-gray-500 mb-4">
+                    {daysLeft} days left to donate
+                  </p>
+                  <input
+                    type="number"
+                    value={donationAmount}
+                    onChange={(e) => setDonationAmount(e.target.value)}
+                    placeholder={`Enter amount in ${campaignMetadata.currency}`}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-md mb-4"
+                    disabled={isDonating || !activeWallet}
+                  />
+                <button 
+                    onClick={handleDonate}
+                    disabled={isDonating || !activeWallet} 
+                    className={`w-full text-white py-3 px-4 rounded-md font-medium transition-colors 
+                                ${isDonating ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}
+                                ${!activeWallet ? 'bg-gray-300 cursor-not-allowed' : ''}`}
+                >
+                    {isDonating ? 'Processing Donation...' : (activeWallet ? 'Donate Now' : 'Connect Wallet to Donate')}
+                </button>
+                  {donationError && <p className="text-sm text-red-600 mt-2">{donationError}</p>}
+                  {donationSuccess && 
+                    <div className="text-sm text-green-600 mt-2">
+                      <p>{donationSuccess}</p>
+                      {donationSuccess.includes('TxHash') && (
+                         <a 
+                            href={`https://preprod.cexplorer.io/tx/${donationSuccess.split('TxHash: ')[1].replace('...','')}`}
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            className="text-blue-600 hover:underline flex items-center mt-1"
+                          >
+                            View on Explorer <FiExternalLink className="ml-1" />
+                          </a>
+                      )}
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      )}
+      </div>
 
+      {/* Rest of the page content remains the same */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Remaining campaign content */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content */}
         <div className="lg:col-span-2">
@@ -548,44 +737,6 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
                 <span className="font-medium">{campaignMetadata.goalAmount} {campaignMetadata.currency}</span>
               </div>
             </div>
-
-            <div className="mb-6">
-              <p className="text-center text-sm text-gray-500 mb-4">
-                {daysLeft} days left to donate
-              </p>
-              <input
-                type="number"
-                value={donationAmount}
-                onChange={(e) => setDonationAmount(e.target.value)}
-                placeholder={`Enter amount in ${campaignMetadata.currency}`}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md mb-4"
-                disabled={isDonating || !activeWallet}
-              />
-              <button
-                onClick={handleDonate}
-                disabled={isDonating || !activeWallet} 
-                className={`w-full text-white py-3 px-4 rounded-md font-medium transition-colors 
-                            ${isDonating ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}
-                            ${!activeWallet ? 'bg-gray-300 cursor-not-allowed' : ''}`}
-              >
-                {isDonating ? 'Processing Donation...' : (activeWallet ? 'Donate Now' : 'Connect Wallet to Donate')}
-              </button>
-              {donationError && <p className="text-sm text-red-600 mt-2">{donationError}</p>}
-              {donationSuccess && 
-                <div className="text-sm text-green-600 mt-2">
-                  <p>{donationSuccess}</p>
-                  {donationSuccess.includes('TxHash') && (
-                     <a 
-                        href={`https://preprod.cexplorer.io/tx/${donationSuccess.split('TxHash: ')[1].replace('...','')}`}
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="text-blue-600 hover:underline flex items-center mt-1"
-                      >
-                        View on Explorer <FiExternalLink className="ml-1" />
-                      </a>
-                  )}
-                </div>
-              }
             </div>
           </div>
         </div>

@@ -75,99 +75,101 @@ export default function ProfilePage() {
           <div className="lg:col-span-2">
             <Card>
               <CardHeader>
+                <CardTitle>Account Details</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="overview">Overview</TabsTrigger>
                     <TabsTrigger value="activity">Activity</TabsTrigger>
                     <TabsTrigger value="campaigns">My Campaigns</TabsTrigger>
                   </TabsList>
+                  
+                  <TabsContent value="overview" className="mt-4">
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">Account Overview</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Account Statistics
+                          </h4>
+                          <dl className="mt-2 space-y-2">
+                            <div className="flex justify-between">
+                              <dt className="text-sm text-gray-500 dark:text-gray-400">Account Created</dt>
+                              <dd className="text-sm text-gray-900 dark:text-white">June 2024</dd>
+                            </div>
+                            <div className="flex justify-between">
+                              <dt className="text-sm text-gray-500 dark:text-gray-400">Account Type</dt>
+                              <dd className="text-sm text-gray-900 dark:text-white">Standard</dd>
+                            </div>
+                            <div className="flex justify-between">
+                              <dt className="text-sm text-gray-500 dark:text-gray-400">Verification Status</dt>
+                              <dd className="text-sm text-green-600">Verified</dd>
+                            </div>
+                          </dl>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                            Campaign Statistics
+                          </h4>
+                          <dl className="mt-2 space-y-2">
+                            <div className="flex justify-between">
+                              <dt className="text-sm text-gray-500 dark:text-gray-400">Active Campaigns</dt>
+                              <dd className="text-sm text-gray-900 dark:text-white">2</dd>
+                            </div>
+                            <div className="flex justify-between">
+                              <dt className="text-sm text-gray-500 dark:text-gray-400">Total Donations</dt>
+                              <dd className="text-sm text-gray-900 dark:text-white">₳1,500</dd>
+                            </div>
+                            <div className="flex justify-between">
+                              <dt className="text-sm text-gray-500 dark:text-gray-400">Campaigns Created</dt>
+                              <dd className="text-sm text-gray-900 dark:text-white">3</dd>
+                            </div>
+                          </dl>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="activity" className="mt-4">
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">Recent Activity</h3>
+                      <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {[1, 2, 3].map((activity) => (
+                          <div key={activity} className="py-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-medium">Campaign Donation</p>
+                                <p className="text-sm text-gray-500">You donated ₳50 to Emergency Heart Surgery</p>
+                              </div>
+                              <span className="text-sm text-gray-500">June 15, 2024</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="campaigns" className="mt-4">
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">My Campaigns</h3>
+                      <div className="grid gap-4">
+                        {[1, 2].map((campaign) => (
+                          <div key={campaign} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <h4 className="font-medium">Emergency Heart Surgery</h4>
+                                <p className="text-sm text-gray-500">Created: June 1, 2024</p>
+                                <p className="mt-2 text-sm">Raised: ₳1,200 of ₳5,000 goal</p>
+                              </div>
+                              <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Active</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </TabsContent>
                 </Tabs>
-              </CardHeader>
-              <CardContent>
-                <TabsContent value="overview" className="mt-2">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Account Overview</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Account Statistics
-                        </h4>
-                        <dl className="mt-2 space-y-2">
-                          <div className="flex justify-between">
-                            <dt className="text-sm text-gray-500 dark:text-gray-400">Account Created</dt>
-                            <dd className="text-sm text-gray-900 dark:text-white">June 2024</dd>
-                          </div>
-                          <div className="flex justify-between">
-                            <dt className="text-sm text-gray-500 dark:text-gray-400">Account Type</dt>
-                            <dd className="text-sm text-gray-900 dark:text-white">Standard</dd>
-                          </div>
-                          <div className="flex justify-between">
-                            <dt className="text-sm text-gray-500 dark:text-gray-400">Verification Status</dt>
-                            <dd className="text-sm text-green-600">Verified</dd>
-                          </div>
-                        </dl>
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                          Campaign Statistics
-                        </h4>
-                        <dl className="mt-2 space-y-2">
-                          <div className="flex justify-between">
-                            <dt className="text-sm text-gray-500 dark:text-gray-400">Active Campaigns</dt>
-                            <dd className="text-sm text-gray-900 dark:text-white">2</dd>
-                          </div>
-                          <div className="flex justify-between">
-                            <dt className="text-sm text-gray-500 dark:text-gray-400">Total Donations</dt>
-                            <dd className="text-sm text-gray-900 dark:text-white">₳1,500</dd>
-                          </div>
-                          <div className="flex justify-between">
-                            <dt className="text-sm text-gray-500 dark:text-gray-400">Campaigns Created</dt>
-                            <dd className="text-sm text-gray-900 dark:text-white">3</dd>
-                          </div>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="activity" className="mt-2">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Recent Activity</h3>
-                    <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {[1, 2, 3].map((activity) => (
-                        <div key={activity} className="py-4">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium">Campaign Donation</p>
-                              <p className="text-sm text-gray-500">You donated ₳50 to Emergency Heart Surgery</p>
-                            </div>
-                            <span className="text-sm text-gray-500">June 15, 2024</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="campaigns" className="mt-2">
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">My Campaigns</h3>
-                    <div className="grid gap-4">
-                      {[1, 2].map((campaign) => (
-                        <div key={campaign} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <h4 className="font-medium">Emergency Heart Surgery</h4>
-                              <p className="text-sm text-gray-500">Created: June 1, 2024</p>
-                              <p className="mt-2 text-sm">Raised: ₳1,200 of ₳5,000 goal</p>
-                            </div>
-                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">Active</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </TabsContent>
               </CardContent>
             </Card>
           </div>

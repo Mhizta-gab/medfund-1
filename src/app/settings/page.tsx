@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 
-const SettingsPage = () => {
+const SettingsContent = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('account');
   const [notifications, setNotifications] = useState({
@@ -364,6 +364,14 @@ const SettingsPage = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+const SettingsPage = () => {
+  return (
+    <AuthProvider>
+      <SettingsContent />
+    </AuthProvider>
   );
 };
 

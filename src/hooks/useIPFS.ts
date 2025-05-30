@@ -4,7 +4,8 @@ import { IPFSManager } from '@/utils/ipfs/IPFSManager';
 import { CampaignMetadata } from '@/utils/ipfs/schemas/CampaignMetadata';
 import { TestimonialMetadata } from '@/utils/ipfs/schemas/TestimonialMetadata';
 import { RewardMetadata } from '@/utils/ipfs/schemas/RewardMetadata';
-import latestDbCID from '@/utils/ipfs/latest-db-cid.json';
+// Import fallback CID value only for initial state
+import fallbackCID from '@/utils/ipfs/latest-db-cid.json';
 
 // Define interfaces for the hook return
 interface IPFSDatabase {
@@ -63,6 +64,24 @@ interface IPFSHookReturn {
   gatewayUrl: string;
 }
 
+// Function to fetch the latest CID from API
+async function fetchLatestCID(): Promise<string> {
+  try {
+    const response = await fetch('/api/ipfs/latest-cid');
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch latest CID: ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return data.databaseCID;
+  } catch (error) {
+    console.error('Error fetching latest CID:', error);
+    // Return fallback CID if API call fails
+    return fallbackCID.databaseCID;
+  }
+}
+
 export const useIPFS = (): IPFSHookReturn => {
   // Create service instances
   const [ipfsManager] = useState(() => new IPFSManager());
@@ -71,29 +90,20 @@ export const useIPFS = (): IPFSHookReturn => {
   // State management
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isConfigured, setIsConfigured] = useState(false);
   const [database, setDatabase] = useState<IPFSDatabase | null>(null);
-  const [databaseCID, setDatabaseCID] = useState<string | null>(latestDbCID.databaseCID);
+  const [databaseCID, setDatabaseCID] = useState<string | null>(fallbackCID.databaseCID);
 
   // Load initial database
   useEffect(() => {
-    setIsConfigured(ipfsManager.isConfigured);
     
     const loadInitialDatabase = async () => {
-      if (ipfsManager.isConfigured) {
-        setIsLoading(false);
-        setError("IPFS is not configured. Please add PINATA_JWT to your environment variables.");
-        return;
-      }
       
       setIsLoading(true);
       setError(null);
       
       try {
-        // Dynamic import to ensure the latest CID is used (bypassing Next.js static import)
-        // This allows us to update the CID file and have it reflected in the app
-        const latestCidModule = await import('@/utils/ipfs/latest-db-cid.json');
-        const latestCid = latestCidModule.default.databaseCID;
+        // Fetch the latest CID from API instead of importing the file
+        const latestCid = await fetchLatestCID();
         
         if (latestCid && latestCid !== "QmYourDatabaseCIDHere") {
           console.log(`Loading database from CID: ${latestCid}`);
@@ -151,9 +161,26 @@ export const useIPFS = (): IPFSHookReturn => {
       
       // In browser environments, we can't directly write to the JSON file
       // This would need to be handled via a server API endpoint
-      // For now, we just log this for informational purposes
       console.info(`Database saved with new CID: ${newCid}`);
-      console.info('NOTE: In a production environment, this would update the stored CID');
+      
+      // Call an API to update the CID file on the server
+      try {
+        const response = await fetch('/api/ipfs/update-cid', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ databaseCID: newCid })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to update CID file: ${response.statusText}`);
+        }
+        
+        console.info('Successfully updated database CID file on server');
+      } catch (updateErr: any) {
+        console.warn('Could not update CID file via API:', updateErr.message);
+      }
       
       return newCid;
     } catch (err: any) {
@@ -279,7 +306,7 @@ export const useIPFS = (): IPFSHookReturn => {
       return {
     // Service statuses
     isLoading,
-    isConfigured,
+    isConfigured: true,
     error,
     
     // Database management

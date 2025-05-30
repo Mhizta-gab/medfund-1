@@ -20,10 +20,15 @@ export default function WalletConnect() {
   
   const [showWalletList, setShowWalletList] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Effect to show wallet suggestion toast
   useEffect(() => {
-    if (shouldSuggestWallet && preferredWallet) {
+    if (mounted && shouldSuggestWallet && preferredWallet) {
       toast.info(
         <div className="flex flex-col space-y-2">
           <p>Connect your wallet to access all features</p>
@@ -37,11 +42,11 @@ export default function WalletConnect() {
         { duration: 10000 }
       );
     }
-  }, [shouldSuggestWallet, preferredWallet]);
+  }, [mounted, shouldSuggestWallet, preferredWallet]);
 
   // Ensure this component only renders client-side where window is available
-  if (typeof window === 'undefined') {
-    return null;
+  if (!mounted) {
+    return null; // Or a loading spinner, or placeholder
   }
   
   const handleConnect = async (name: string) => {

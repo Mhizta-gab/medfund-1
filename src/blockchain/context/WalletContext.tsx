@@ -17,6 +17,7 @@ interface CardanoWalletContextProps {
   error: string | null;
   activeWallet: any | null; // Using any for now to bypass type import issues
   lastUsedWallet: string | null;
+  recoverWalletAddress: () => Promise<string | null>;
 }
 
 const CardanoWalletContext = createContext<CardanoWalletContextProps | undefined>(undefined);
@@ -100,12 +101,50 @@ export const CardanoWalletProvider: React.FC<CardanoWalletProviderProps> = ({ ch
       
       if (connected && activeWallet) {
         try {
-          const addresses = await activeWallet.getUsedAddresses();
-          setWalletAddress(addresses.length > 0 ? addresses[0] : null);
+          console.log('Updating wallet info for:', activeWallet?.name || 'unknown wallet');
           
-          const balanceAssets = await activeWallet.getBalance();
-          const adaBalance = balanceAssets.find(asset => asset.unit === 'lovelace');
-          setWalletBalance(adaBalance ? (BigInt(adaBalance.quantity) / BigInt(1000000)).toString() : '0');
+          // Get wallet addresses
+          let addresses;
+          try {
+            addresses = await activeWallet.getUsedAddresses();
+            console.log('Got addresses:', addresses);
+          } catch (addrErr: any) {
+            console.error('Failed to get wallet addresses:', addrErr);
+            addresses = [];
+            
+            // Try alternative method for some wallets
+            try {
+              // Some wallets might provide address through getChangeAddress
+              if (typeof activeWallet.getChangeAddress === 'function') {
+                const changeAddress = await activeWallet.getChangeAddress();
+                if (changeAddress) {
+                  console.log('Got change address as fallback:', changeAddress);
+                  addresses = [changeAddress];
+                }
+              }
+            } catch (fallbackErr) {
+              console.error('Failed to get change address:', fallbackErr);
+            }
+          }
+          
+          // Set wallet address
+          if (addresses && addresses.length > 0) {
+            setWalletAddress(addresses[0]);
+          } else {
+            console.warn('No addresses found in connected wallet');
+            setWalletAddress(null);
+          }
+          
+          // Get wallet balance
+          try {
+            const balanceAssets = await activeWallet.getBalance();
+            const adaBalance = balanceAssets.find((asset: { unit: string, quantity: string }) => asset.unit === 'lovelace');
+            setWalletBalance(adaBalance ? (BigInt(adaBalance.quantity) / BigInt(1000000)).toString() : '0');
+          } catch (balErr: any) {
+            console.error('Failed to get wallet balance:', balErr);
+            setWalletBalance('0');
+          }
+          
           setCustomError(null);
         } catch (err: any) {
           console.error('Failed to update wallet info:', err);
@@ -135,7 +174,7 @@ export const CardanoWalletProvider: React.FC<CardanoWalletProviderProps> = ({ ch
           
           // Get balance
           const balanceAssets = await enabledWallet.getBalance();
-          const adaBalance = balanceAssets.find(asset => asset.unit === 'lovelace');
+          const adaBalance = balanceAssets.find((asset: { unit: string, quantity: string }) => asset.unit === 'lovelace');
           setWalletBalance(adaBalance ? (BigInt(adaBalance.quantity) / BigInt(1000000)).toString() : '0');
           
           // Save last used wallet
@@ -202,6 +241,60 @@ export const CardanoWalletProvider: React.FC<CardanoWalletProviderProps> = ({ ch
   // Use the direct wallet name or the mesh wallet name
   const actualWalletName = directWallet ? lastUsedWallet : connectedWalletName;
 
+  // Add a recoverWalletAddress function
+  const recoverWalletAddress = async (): Promise<string | null> => {
+    const activeWallet = directWallet || wallet;
+    if (!activeWallet) return null;
+    
+    console.log('Recovering wallet address from context...');
+    
+    try {
+      // Try multiple methods to get the address
+      
+      // First try getUsedAddresses
+      try {
+        const addresses = await activeWallet.getUsedAddresses();
+        if (addresses && addresses.length > 0) {
+          console.log('Recovered address using getUsedAddresses:', addresses[0]);
+          setWalletAddress(addresses[0]); // Update the context state
+          return addresses[0];
+        }
+      } catch (err) {
+        console.error('Failed to get used addresses:', err);
+      }
+      
+      // Then try getChangeAddress
+      try {
+        if (typeof activeWallet.getChangeAddress === 'function') {
+          const changeAddress = await activeWallet.getChangeAddress();
+          if (changeAddress) {
+            console.log('Recovered address using getChangeAddress:', changeAddress);
+            setWalletAddress(changeAddress); // Update the context state
+            return changeAddress;
+          }
+        }
+      } catch (err) {
+        console.error('Failed to get change address:', err);
+      }
+      
+      // Try wallet-specific properties
+      try {
+        if (activeWallet.address) {
+          console.log('Recovered address from wallet property:', activeWallet.address);
+          setWalletAddress(activeWallet.address); // Update the context state
+          return activeWallet.address;
+        }
+      } catch (err) {
+        console.error('Failed to get address from property:', err);
+      }
+      
+      return null;
+    } catch (err) {
+      console.error('Error recovering wallet address:', err);
+      return null;
+    }
+  };
+
   return (
     <CardanoWalletContext.Provider
       value={{
@@ -215,7 +308,8 @@ export const CardanoWalletProvider: React.FC<CardanoWalletProviderProps> = ({ ch
         disconnectWallet: handleDisconnect,
         error: getCombinedError(),
         activeWallet: directWallet || wallet || null,
-        lastUsedWallet
+        lastUsedWallet,
+        recoverWalletAddress
       }}
     >
       {children}

@@ -3,7 +3,7 @@ import { TestimonialMetadata } from './schemas/TestimonialMetadata';
 import { RewardMetadata } from './schemas/RewardMetadata';
 
 // Load environment variables
-const PINATA_JWT = process.env.PINATA_JWT ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiI1NWQ2NzViMi0xMTE0LTQwM2YtYWY4My1kYWM3NGEwZDhiYWYiLCJlbWFpbCI6ImFidWJha3JqaW1vaDE2NDg4QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6IkZSQTEifSx7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6Ik5ZQzEifV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiI4YjRiMmIwNDViMDY3MGUzNmNjNCIsInNjb3BlZEtleVNlY3JldCI6ImRjZTcxYzc2ZWEyNDBlY2U3ZTk2YjNhOTgxNWU5N2ExMmNkMzFmZmVkNzA5M2NlMzY1ZDVhYzA4YTM0YTE3Y2UiLCJleHAiOjE3ODAxNTA3MzV9.KAoq8hWL6H2Tz1tKj7GueLravuhasKjYucWZgC6Wxt4"
+const PINATA_JWT = process.env.PINATA_JWT || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySW5mb3JtYXRpb24iOnsiaWQiOiI1NWQ2NzViMi0xMTE0LTQwM2YtYWY4My1kYWM3NGEwZDhiYWYiLCJlbWFpbCI6ImFidWJha3JqaW1vaDE2NDg4QGdtYWlsLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJwaW5fcG9saWN5Ijp7InJlZ2lvbnMiOlt7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6IkZSQTEifSx7ImRlc2lyZWRSZXBsaWNhdGlvbkNvdW50IjoxLCJpZCI6Ik5ZQzEifV0sInZlcnNpb24iOjF9LCJtZmFfZW5hYmxlZCI6ZmFsc2UsInN0YXR1cyI6IkFDVElWRSJ9LCJhdXRoZW50aWNhdGlvblR5cGUiOiJzY29wZWRLZXkiLCJzY29wZWRLZXlLZXkiOiI4YjRiMmIwNDViMDY3MGUzNmNjNCIsInNjb3BlZEtleVNlY3JldCI6ImRjZTcxYzc2ZWEyNDBlY2U3ZTk2YjNhOTgxNWU5N2ExMmNkMzFmZmVkNzA5M2NlMzY1ZDVhYzA4YTM0YTE3Y2UiLCJleHAiOjE3ODAxNTA3MzV9.KAoq8hWL6H2Tz1tKj7GueLravuhasKjYucWZgC6Wxt4";
 const PINATA_GATEWAY_URL_ENV = process.env.PINATA_GATEWAY_URL ?? "https://gateway.pinata.cloud/ipfs/";
 
 export class PinataService {
@@ -11,26 +11,11 @@ export class PinataService {
   private gateway: string;
   private apiBaseUrl: string = 'https://api.pinata.cloud/v3';
   private uploadBaseUrl: string = 'https://uploads.pinata.cloud/v3'; // Separate base URL for uploads
-  private isConfigured: boolean;
 
   constructor() {
-    if (!PINATA_JWT) {
-      console.error('CRITICAL: PINATA_JWT environment variable is not set. PinataService will not function.');
-      this.jwt = ''; 
-      this.isConfigured = false;
-    } else {
-      this.jwt = PINATA_JWT;
-      this.isConfigured = true;
-    }
+    this.jwt = PINATA_JWT;
     this.gateway = PINATA_GATEWAY_URL_ENV || 'https://gateway.pinata.cloud/ipfs/';
-
-    if (this.isConfigured) {
-        console.log('PinataService configured with JWT from environment variable.');
-    }
-  }
-
-  public get configured(): boolean {
-    return this.isConfigured;
+    console.log('PinataService initialized with JWT token.');
   }
 
   public get gatewayUrl(): string {
@@ -38,11 +23,6 @@ export class PinataService {
   }
 
   private async makeApiRequest(baseUrl: string, endpoint: string, options: RequestInit): Promise<any> {
-    if (!this.isConfigured) {
-      console.error('PinataService.makeApiRequest: Service not configured');
-      throw new Error('Pinata service not configured. Missing JWT token.');
-    }
-
     const url = `${baseUrl}${endpoint}`;
     console.log(`PinataService.makeApiRequest: Requesting URL: ${url}, Method: ${options.method}`);
     

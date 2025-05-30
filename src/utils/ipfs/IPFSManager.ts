@@ -35,20 +35,9 @@ export class IPFSManager {
   }
   
   /**
-   * Check if service is configured properly
-   */
-  public get isConfigured(): boolean {
-    return this.pinataService.configured;
-  }
-  
-  /**
    * Upload a new campaign with images
    */
   async uploadCampaign(campaignData: CampaignData): Promise<string> {
-    if (!this.isConfigured) {
-      throw new Error('IPFS service not configured');
-    }
-    
     // Ensure campaign has an ID, and tracking fields are initialized
     if (!campaignData.campaign.id) {
       throw new Error('Campaign ID is required to upload.'); // Or generate one if preferred
@@ -117,10 +106,6 @@ export class IPFSManager {
    * Upload a testimonial
    */
   async uploadTestimonial(testimonial: TestimonialMetadata, authorImageBase64?: string): Promise<string> {
-    if (!this.isConfigured) {
-      throw new Error('IPFS service not configured');
-    }
-    
     try {
       // Upload author image if provided
       if (authorImageBase64) {
@@ -149,10 +134,6 @@ export class IPFSManager {
    * Upload a reward
    */
   async uploadReward(reward: RewardMetadata, rewardImageBase64?: string): Promise<string> {
-    if (!this.isConfigured) {
-      throw new Error('IPFS service not configured');
-    }
-    
     try {
       // Upload reward image if provided
       if (rewardImageBase64) {
@@ -283,17 +264,13 @@ export class IPFSManager {
       console.error('IPFSManager.saveDatabase: Database not loaded or initialized.');
       throw new Error('Database not loaded or initialized.');
     }
-    if (!this.isConfigured) {
-      console.error('IPFSManager.saveDatabase: IPFS service not configured.');
-      throw new Error('IPFS service not configured');
-    }
     
     console.log('IPFSManager.saveDatabase: Saving current database to Pinata...');
     try {
-    const cid = await this.pinataService.uploadCampaignDatabase(this.database);
-    this.databaseCID = cid;
+      const cid = await this.pinataService.uploadCampaignDatabase(this.database);
+      this.databaseCID = cid;
       console.log(`IPFSManager.saveDatabase: Database saved successfully. New CID: ${cid}`);
-    return cid;
+      return cid;
     } catch (error) {
       console.error('IPFSManager.saveDatabase: Failed to save database to IPFS:', error);
       throw error;

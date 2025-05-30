@@ -80,7 +80,7 @@ export const useIPFS = (): IPFSHookReturn => {
     setIsConfigured(ipfsManager.isConfigured);
     
     const loadInitialDatabase = async () => {
-      if (!ipfsManager.isConfigured) {
+      if (ipfsManager.isConfigured) {
         setIsLoading(false);
         setError("IPFS is not configured. Please add PINATA_JWT to your environment variables.");
         return;

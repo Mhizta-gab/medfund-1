@@ -240,11 +240,6 @@ async function seedIPFSData() {
   // Initialize IPFS Manager
   const ipfsManager = new IPFSManager();
   
-  if (!ipfsManager.isConfigured) {
-    console.error('Error: IPFSManager not configured. Check your Pinata JWT token.');
-    process.exit(1);
-  }
-  
   // Create empty database to start fresh
   console.log('Creating empty IPFS database...');
   const dbCid = await ipfsManager.createEmptyDatabase();

@@ -25,22 +25,22 @@ export async function donateToCampaign(
 ): Promise<string> {
   try {
     const { recipientAddress, amountInAda, metadata } = params;
-
-    if (!wallet) {
-      throw new Error('Wallet not connected');
-    }
-    
-    if (!recipientAddress) {
-      throw new Error('Campaign recipient address is not available');
-    }
-    
-    if (isNaN(amountInAda) || amountInAda <= 0) {
-      throw new Error('Please enter a valid positive donation amount');
-    }
-    
+  
+  if (!wallet) {
+    throw new Error('Wallet not connected');
+  }
+  
+  if (!recipientAddress) {
+    throw new Error('Campaign recipient address is not available');
+  }
+  
+  if (isNaN(amountInAda) || amountInAda <= 0) {
+    throw new Error('Please enter a valid positive donation amount');
+  }
+  
     // Convert ADA to lovelace (1 ADA = 1,000,000 lovelace)
-    const amountInLovelace = Math.floor(amountInAda * 1_000_000).toString();
-
+  const amountInLovelace = Math.floor(amountInAda * 1_000_000).toString();
+  
     console.log(`Sending ${amountInLovelace} lovelace to ${recipientAddress}`);
     
     // Log wallet information for debugging
@@ -50,7 +50,7 @@ export async function donateToCampaign(
     const tx = new Transaction({ initiator: wallet });
 
     // Send lovelace to the recipient
-    tx.sendLovelace("addr_test1qq3uh5hhnq3zp8gkwtuk3yccmvh9p463jxzyrm6cdp4qhyalty4m6q0f48asz589vzc63ygqa8a4dz7e7uaqp8g4hvasw8u9lq", amountInLovelace);
+    tx.sendLovelace(recipientAddress, amountInLovelace);
 
     // Add metadata if provided
     if (metadata) {
@@ -103,7 +103,7 @@ export async function donateWithValue(
     
     const amountInLovelace = Math.floor(amountInAda * 1_000_000).toString();
     console.log(`Sending ${amountInLovelace} lovelace to ${recipientAddress} using sendValue`);
-    
+  
     // Create a new transaction
     const tx = new Transaction({ initiator: wallet });
     
@@ -114,12 +114,12 @@ export async function donateWithValue(
       // Otherwise just use standard sendLovelace
       tx.sendLovelace(recipientAddress, amountInLovelace);
     }
-    
-    // Add metadata if provided
-    if (metadata) {
+  
+  // Add metadata if provided
+  if (metadata) {
       tx.setMetadata(674, metadata);
-    }
-
+  }
+  
     const unsignedTx = await tx.build();
     const signedTx = await wallet.signTx(unsignedTx);
     const txHash = await wallet.submitTx(signedTx);

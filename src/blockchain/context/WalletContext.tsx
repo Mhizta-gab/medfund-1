@@ -137,9 +137,9 @@ export const CardanoWalletProvider: React.FC<CardanoWalletProviderProps> = ({ ch
           
           // Get wallet balance
           try {
-            const balanceAssets = await activeWallet.getBalance();
+          const balanceAssets = await activeWallet.getBalance();
             const adaBalance = balanceAssets.find((asset: { unit: string, quantity: string }) => asset.unit === 'lovelace');
-            setWalletBalance(adaBalance ? (BigInt(adaBalance.quantity) / BigInt(1000000)).toString() : '0');
+          setWalletBalance(adaBalance ? (BigInt(adaBalance.quantity) / BigInt(1000000)).toString() : '0');
           } catch (balErr: any) {
             console.error('Failed to get wallet balance:', balErr);
             setWalletBalance('0');

@@ -75,7 +75,7 @@ export default function ConnectWalletButton({
       try {
         const success = await connectWallet(lastUsedWallet);
         if (success) {
-          toast.success(`Connected to ${lastUsedWallet}`);
+        toast.success(`Connected to ${lastUsedWallet}`);
           
           // Verify connection and recover address if needed
           setTimeout(verifyConnection, 1000);
@@ -93,31 +93,31 @@ export default function ConnectWalletButton({
       setShowWalletList(true);
     }
   };
-
+    
   // Add code to display the wallet list when showWalletList is true
   useEffect(() => {
     if (showWalletList && availableWallets.length > 0) {
-      toast.info(
-        <div className="space-y-2">
-          <p className="font-medium">Select a wallet to connect:</p>
-          <div className="flex flex-col space-y-1">
-            {availableWallets.map(wallet => (
-              <button
-                key={wallet.name}
+    toast.info(
+      <div className="space-y-2">
+        <p className="font-medium">Select a wallet to connect:</p>
+        <div className="flex flex-col space-y-1">
+          {availableWallets.map(wallet => (
+            <button
+              key={wallet.name}
                 onClick={() => {
                   connectWallet(wallet.name);
                   setShowWalletList(false);
                 }}
-                className="flex items-center space-x-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 rounded-md transition-colors text-left"
-              >
-                {wallet.icon && <img src={wallet.icon} alt={wallet.name} className="w-5 h-5" />}
-                <span>{wallet.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>,
+              className="flex items-center space-x-2 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 rounded-md transition-colors text-left"
+            >
+              {wallet.icon && <img src={wallet.icon} alt={wallet.name} className="w-5 h-5" />}
+              <span>{wallet.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>,
         { duration: 10000, onDismiss: () => setShowWalletList(false) }
-      );
+    );
     }
   }, [showWalletList, availableWallets, connectWallet]);
 

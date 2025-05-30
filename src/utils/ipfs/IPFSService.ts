@@ -28,6 +28,50 @@ export class IPFSService {
     this.isConfigured = true;
   }
   
+  /**
+   * Uploads a base64 image to IPFS
+   * @param base64Data - Base64 string of the image (with or without data URI prefix)
+   * @param filename - Optional filename
+   * @param mimeType - Optional MIME type (default: image/png)
+   * @returns Promise containing the IPFS hash of the uploaded content
+   */
+  async uploadBase64Image(
+    base64Data: string, 
+    filename: string = 'image.png', 
+    mimeType: string = 'image/png'
+  ): Promise<string> {
+    try {
+      // Remove data URI prefix if present
+      const base64Clean = base64Data.includes('base64,') 
+        ? base64Data.split('base64,')[1] 
+        : base64Data;
+      
+      // Convert base64 to Blob
+      const byteCharacters = atob(base64Clean);
+      const byteArrays = [];
+      
+      for (let offset = 0; offset < byteCharacters.length; offset += 512) {
+        const slice = byteCharacters.slice(offset, offset + 512);
+        
+        const byteNumbers = new Array(slice.length);
+        for (let i = 0; i < slice.length; i++) {
+          byteNumbers[i] = slice.charCodeAt(i);
+        }
+        
+        const byteArray = new Uint8Array(byteNumbers);
+        byteArrays.push(byteArray);
+      }
+      
+      const blob = new Blob(byteArrays, { type: mimeType });
+      const file = new File([blob], filename, { type: mimeType });
+      
+      return await this.uploadFile(file);
+    } catch (error: any) {
+      console.error('IPFS uploadBase64Image error:', error.message || error);
+      throw new Error(`IPFS uploadBase64Image failed: ${error.message || error}`);
+    }
+  }
+  
   async uploadFile(file: File): Promise<string> {
     try {
       // Use fetch API for browser compatibility
@@ -100,6 +144,28 @@ export class IPFSService {
     } catch (error: any) {
       console.error('IPFS getJSON error - failed to parse JSON:', error.message || error);
       throw new Error(`IPFS getJSON failed - not valid JSON or fetch error: ${error.message || error}`);
+    }
+  }
+  
+  /**
+   * Fetches an image from IPFS and returns it as a base64 string
+   * @param ipfsHash - IPFS hash of the image
+   * @returns Promise containing the base64 string of the image
+   */
+  async getImageAsBase64(ipfsHash: string): Promise<string> {
+    try {
+      const response = await this.getFileResponse(ipfsHash);
+      const blob = await response.blob();
+      
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    } catch (error: any) {
+      console.error('IPFS getImageAsBase64 error:', error.message || error);
+      throw new Error(`IPFS getImageAsBase64 failed: ${error.message || error}`);
     }
   }
   

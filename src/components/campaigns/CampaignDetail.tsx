@@ -24,51 +24,19 @@ const formatDate = (timestamp: number | undefined) => {
   });
 };
 
-// Mock data for development - replace with actual API calls
-const mockCampaign = {
-  id: 'campaign-123',
-  campaignAddress: 'addr1qywxpz394htl7c2hnj5t2nee4z6ee9xlny5vx0mnl44jnz7sgfnuc42a9qyzupjg79x3thww3lk6z5v5xgdnmftc8mqswh3dh2',
-  title: 'Emergency Medical Treatment for Sarah',
-  story: 'Sarah was recently diagnosed with a rare condition that requires immediate specialized treatment. The treatment is not covered by insurance and the family needs support to pay for the necessary medical procedures.',
-  goalAmount: 50000,
-  raisedAmount: 28750,
-  currency: 'ADA',
-  category: 'Emergency Care',
-  campaignImageCID: '',
-  medicalCondition: {
-    summary: 'Rare autoimmune condition requiring specialized treatment',
-    diagnosisDate: '2023-04-15',
-    treatmentPlanSummary: 'Specialized immunotherapy and targeted medication protocol'
-  },
-  hospitalInfo: {
-    name: 'Central City Medical Center',
-    verificationCID: 'QmTjcaQJJMkEXuxSJ7XDX3RwkAjbhkjnbS8dJeJcKKJVcm'
-  },
-  documentsCIDs: {
-    medicalRecords: ['QmTWaR8y7G3D6A169UtJsKLNmDTZ3GvuTmEpjmTTGXhSxn'],
-    verificationDocuments: ['QmTjcaQJJMkEXuxSJ7XDX3RwkAjbhkjnbS8dJeJcKKJVcm'],
-    treatmentPlanFull: 'QmVmAALQDxVhpmvQzQW4rANKAuFgvZgEatxiyyJUHNexkK'
-  },
-  updates: [
-    {
-      timestamp: Date.now() - 7 * 24 * 60 * 60 * 1000,
-      title: 'Treatment Started',
-      content: 'Sarah has started her first round of treatment. The doctors are optimistic about her response to the therapy.'
-    }
-  ],
-  // Required fields from CampaignMetadata
-  version: '1.0',
-  created: Date.now() - 15 * 24 * 60 * 60 * 1000, // 15 days ago
-  updated: Date.now() - 2 * 24 * 60 * 60 * 1000, // 2 days ago
-  status: 'active' as const,
-  organizerId: 'addr1qyw3df26hch6h8v0mcqgdn5g0wtalz4m2s6z4z98jeh96esgfnuc42a9qyzupjg79x3thww3lk6z5v5xgdnmftc8mqsdfjdhg'
-};
-
 export default function CampaignDetail() {
   const { id } = useParams();
   const { connected, activeWallet, walletAddress, walletName, connectWallet, disconnectWallet, recoverWalletAddress } = useCardanoWallet();
   const { network, useMeshFallback } = useBlockchain();
-  const { getCampaignMetadata } = useIPFS();
+  
+  // Get IPFS utilities
+  const { 
+    getCampaign,
+    getCampaignImageUrl,
+    getImageUrl,
+    isLoading: ipfsLoading,
+    error: ipfsError 
+  } = useIPFS();
   
   const [campaign, setCampaign] = useState<(CampaignMetadata & { id: string, campaignAddress: string, raisedAmount: number }) | null>(null);
   const [loading, setLoading] = useState(true);
@@ -85,27 +53,38 @@ export default function CampaignDetail() {
   // Calculate days left
   const calculateDaysLeft = () => {
     if (!campaign?.updated) return 'N/A';
-    const endTimestamp = campaign.updated + (30 * 24 * 60 * 60 * 1000); // Assuming 30-day campaigns
+    const endTimestamp = campaign.endDate || (campaign.created + (30 * 24 * 60 * 60 * 1000)); // Assuming 30-day campaigns if no end date
     const daysLeft = Math.ceil((endTimestamp - Date.now()) / (24 * 60 * 60 * 1000));
     return daysLeft > 0 ? `${daysLeft} days left` : 'Campaign ended';
   };
 
   useEffect(() => {
     const fetchCampaignData = async () => {
+      if (!id) return;
+      
       setLoading(true);
       setError(null);
       
       try {
-        // In a real app, fetch data from blockchain and IPFS
-        // For now, use mock data
-        // const campaignMetadata = await getCampaignMetadata(id as string);
+        // Fetch campaign from IPFS
+        const campaignData = getCampaign(id as string);
         
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        if (!campaignData) {
+          setError(`Campaign with ID ${id} not found`);
+          setLoading(false);
+          return;
+        }
+        
+        // In a real app, we'd fetch the campaign address from the blockchain
+        // For now, use a placeholder address structure based on the campaign ID
+        const campaignAddress = `addr1${typeof id === 'string' ? id.substring(0, 8).padEnd(103, '0') : ''}`;
         
         setCampaign({
-          ...mockCampaign,
-          id: id as string
+          ...campaignData,
+          id: id as string,
+          campaignAddress,
+          // Make sure we have raisedAmount (should be in the schema already)
+          raisedAmount: campaignData.raisedAmount || 0
         });
       } catch (err: any) {
         console.error('Error fetching campaign:', err);
@@ -115,8 +94,11 @@ export default function CampaignDetail() {
       }
     };
     
-    fetchCampaignData();
-  }, [id]);
+    // Only fetch when not loading IPFS and we have an ID
+    if (!ipfsLoading && id) {
+      fetchCampaignData();
+    }
+  }, [id, ipfsLoading, getCampaign]);
 
   // Add a useEffect to log wallet connection status
   useEffect(() => {
@@ -251,58 +233,20 @@ export default function CampaignDetail() {
           amountInAda: amountValue,
           metadata
         },
-        activeWallet
+        network
       );
       
-      toast.success('Donation successful! Transaction ID: ' + txHash.slice(0, 10) + '...');
+      console.log('Donation transaction submitted:', txHash);
+      toast.success(`Donation of ${amountValue} ADA successfully sent!`);
       setDonationAmount('');
-      
-      // In a real app, you would refresh campaign data here
-      setCampaign({
-        ...campaign,
-        raisedAmount: campaign.raisedAmount + amountValue
-      });
       
     } catch (err: any) {
       console.error('Donation error:', err);
-      toast.error(`Donation failed: ${err.message}`);
+      toast.error(`Donation failed: ${err.message || 'Unknown error'}`);
     } finally {
       setDonationProcessing(false);
     }
   };
-
-  // Update the useEffect that attempts to recover the wallet address to use the context method
-  useEffect(() => {
-    const attemptAddressRecovery = async () => {
-      // Only attempt recovery if we're connected but missing a wallet address
-      if (connected && activeWallet && (!walletAddress || !recoveredAddress)) {
-        console.log('Attempting to recover missing wallet address via context...');
-        
-        try {
-          // Use the context method instead of the local one
-          const recoveredAddr = await recoverWalletAddress();
-          if (recoveredAddr) {
-            console.log('Successfully recovered wallet address via context:', recoveredAddr);
-            setRecoveredAddress(recoveredAddr);
-          } else {
-            // If context method fails, try the direct method as fallback
-            console.log('Context recovery failed, trying direct method...');
-            const directlyRecoveredAddr = await getWalletAddressDirectly();
-            if (directlyRecoveredAddr) {
-              console.log('Successfully recovered wallet address directly:', directlyRecoveredAddr);
-              setRecoveredAddress(directlyRecoveredAddr);
-            } else {
-              console.warn('All wallet address recovery methods failed');
-            }
-          }
-        } catch (err) {
-          console.error('Error during wallet address recovery:', err);
-        }
-      }
-    };
-    
-    attemptAddressRecovery();
-  }, [connected, activeWallet, walletAddress, recoveredAddress, recoverWalletAddress]);
 
   if (loading) {
     return (
@@ -425,10 +369,10 @@ export default function CampaignDetail() {
             <div className="space-y-4">
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-white">Condition Summary</h3>
-                <p className="text-gray-700 dark:text-gray-300">{campaign.medicalCondition.summary}</p>
+                <p className="text-gray-700 dark:text-gray-300">{campaign.medicalCondition?.summary || 'No summary available'}</p>
               </div>
               
-              {campaign.medicalCondition.diagnosisDate && (
+              {campaign.medicalCondition?.diagnosisDate && (
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-white">Diagnosis Date</h3>
                   <p className="text-gray-700 dark:text-gray-300">{campaign.medicalCondition.diagnosisDate}</p>
@@ -437,7 +381,7 @@ export default function CampaignDetail() {
               
               <div>
                 <h3 className="font-semibold text-gray-900 dark:text-white">Treatment Plan</h3>
-                <p className="text-gray-700 dark:text-gray-300">{campaign.medicalCondition.treatmentPlanSummary}</p>
+                <p className="text-gray-700 dark:text-gray-300">{campaign.medicalCondition?.treatmentPlanSummary || 'No treatment plan available'}</p>
               </div>
               
               {campaign.documentsCIDs && (

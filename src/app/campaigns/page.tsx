@@ -2,79 +2,86 @@
 import { useState, useEffect } from 'react';
 import CampaignCard from '@/components/CampaignCard';
 import { cn } from '@/utils';
+import { useIPFS } from '@/hooks/useIPFS';
+import { CampaignMetadata } from '@/utils/ipfs/schemas/CampaignMetadata';
+import { ScaleLoader } from 'react-spinners';
 
-// Mock data for campaigns
-const campaigns = [
-  {
-    id: '1',
-    title: 'Emergency Heart Surgery',
-    description: 'Help John receive life-saving heart surgery at Central Hospital.',
-    goalAmount: 50000,
-    raisedAmount: 35000,
-    imageUrl: '/images/campaign1.jpeg',
-    daysLeft: 15,
-    verified: true,
-  },
-  {
-    id: '2',
-    title: 'Cancer Treatment Support',
-    description: 'Support Sarah battle against breast cancer.',
-    goalAmount: 75000,
-    raisedAmount: 45000,
-    imageUrl: '/images/campaign2.jpg',
-    daysLeft: 30,
-    verified: true,
-  },
-  {
-    id: '3',
-    title: 'Pediatric Care Fund',
-    description: 'Help provide essential medical care for children in rural communities.',
-    goalAmount: 25000,
-    raisedAmount: 15000,
-    imageUrl: '/images/campaign3.jpg',
-    daysLeft: 20,
-    verified: true,
-  },
-  {
-    id: '4',
-    title: 'Diabetes Management Program',
-    description: 'Support ongoing medication and care for diabetes patients in need.',
-    goalAmount: 35000,
-    raisedAmount: 12000,
-    imageUrl: '/images/campaign4.jpg',
-    daysLeft: 45,
-    verified: false,
-  },
-  {
-    id: '5',
-    title: 'Mental Health Clinic Expansion',
-    description: 'Help expand our mental health services to reach more people in crisis.',
-    goalAmount: 90000,
-    raisedAmount: 23000,
-    imageUrl: '/images/campaign5.jpg',
-    daysLeft: 60,
-    verified: true,
-  },
-  {
-    id: '6',
-    title: 'Emergency Medical Equipment',
-    description: 'Funding needed for vital medical equipment at community clinic.',
-    goalAmount: 40000,
-    raisedAmount: 38000,
-    imageUrl: '/images/campaign6.jpg',
-    daysLeft: 5,
-    verified: true,
-  },
-];
+// Campaign interface for UI display
+interface UICampaign {
+  id: string;
+  title: string;
+  description: string; // We'll use story from CampaignMetadata
+  goalAmount: number;
+  raisedAmount: number;
+  imageUrl: string;
+  daysLeft: number;
+  verified: boolean;
+}
 
 export default function CampaignsPage() {
+  const { 
+    isLoading: ipfsLoading, 
+    error: ipfsError, 
+    getAllCampaigns, 
+    getCampaignImageUrl 
+  } = useIPFS();
+  
+  const [campaigns, setCampaigns] = useState<UICampaign[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filter, setFilter] = useState('all'); // all, verified, urgent
   const [isLoaded, setIsLoaded] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  // Calculate days left based on campaign timestamps
+  const calculateDaysLeft = (campaign: CampaignMetadata) => {
+    if (!campaign.endDate) {
+      // If no end date, assume 30 days from creation
+      const endTimestamp = campaign.created + (30 * 24 * 60 * 60 * 1000);
+      return Math.max(0, Math.ceil((endTimestamp - Date.now()) / (24 * 60 * 60 * 1000)));
+    }
+    
+    return Math.max(0, Math.ceil((campaign.endDate - Date.now()) / (24 * 60 * 60 * 1000)));
+  };
+
+  // Load campaigns from IPFS
   useEffect(() => {
+    const fetchCampaigns = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Get all campaigns from IPFS
+        const ipfsCampaigns = getAllCampaigns();
+        
+        // Map to UI format
+        const uiCampaigns: UICampaign[] = ipfsCampaigns
+          .filter(campaign => campaign.status === 'active')
+          .map(campaign => ({
+            id: campaign.id,
+            title: campaign.title,
+            description: campaign.story.substring(0, 150) + (campaign.story.length > 150 ? '...' : ''),
+            goalAmount: campaign.goalAmount,
+            raisedAmount: campaign.raisedAmount,
+            imageUrl: getCampaignImageUrl(campaign, 'campaignImage'),
+            daysLeft: calculateDaysLeft(campaign),
+            verified: campaign.status === 'active' // We'll consider active campaigns as verified for now
+          }));
+        
+        setCampaigns(uiCampaigns);
+      } catch (err: any) {
+        console.error('Error fetching campaigns:', err);
+        setError(`Failed to load campaigns: ${err.message}`);
+      } finally {
+        setLoading(false);
     setIsLoaded(true);
-  }, []);
+      }
+    };
+    
+    if (!ipfsLoading) {
+      fetchCampaigns();
+    }
+  }, [ipfsLoading, getAllCampaigns, getCampaignImageUrl]);
 
   const filteredCampaigns = campaigns.filter(campaign => {
     const matchesSearch = campaign.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -88,6 +95,40 @@ export default function CampaignsPage() {
     
     return matchesSearch;
   });
+
+  // Show loading state
+  if (loading || ipfsLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
+        <div className="text-center">
+          <ScaleLoader color="#3B82F6" height={35} width={4} radius={2} margin={2} />
+          <p className="mt-4 text-gray-600 dark:text-gray-300 text-lg">Loading campaigns...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error || ipfsError) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
+        <div className="text-center max-w-md mx-auto">
+          <div className="text-red-500 mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Failed to Load Campaigns</h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            {error || ipfsError}
+          </p>
+          <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+            This could be due to a network issue or missing IPFS configuration. Please try again later.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={cn(

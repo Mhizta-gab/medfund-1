@@ -1,4 +1,7 @@
+export type CampaignStatus = 'draft' | 'pending_verification' | 'active' | 'completed' | 'on_hold' | 'cancelled';
+
 export interface CampaignMetadata {
+  id: string; // Unique identifier for the campaign (e.g., UUID)
   version: string;
   title: string;
   story: string; // Changed from description to story for more narrative content
@@ -15,7 +18,7 @@ export interface CampaignMetadata {
     address?: string;
     verificationCID?: string; // IPFS CID of hospital verification document
   };
-  medicalCondition: {
+  medicalCondition?: { // Made optional for easier CLI creation
     summary: string; // Changed from description
     diagnosisDate?: string;
     treatmentPlanSummary: string; // Changed from treatmentPlan
@@ -43,6 +46,12 @@ export interface CampaignMetadata {
   tags?: string[];
   created: number; // Timestamp (Unix epoch in seconds or milliseconds)
   updated: number; // Timestamp
-  status: 'draft' | 'pending_verification' | 'active' | 'completed' | 'on_hold' | 'cancelled';
+  endDate?: number; // Optional: Timestamp for campaign end
+  status: CampaignStatus; // Use the exported type
   organizerId?: string; // Wallet address or unique ID of the campaign organizer
+
+  // Tracking fields
+  raisedAmount: number; // Total amount raised, should be in lovelace if currency is ADA
+  donatorCount: number; // Number of unique donators
+  donationCount: number; // Total number of donations received
 } 

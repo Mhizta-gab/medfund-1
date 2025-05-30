@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import VerificationPanel from '@/components/admin/VerificationPanel';
 import { useAuth } from '@/context/AuthContext';
+import withAuth from '@/utils/withAuth';
 
 const AdminPage = () => {
   const [activeTab, setActiveTab] = useState('verification');
@@ -90,4 +91,4 @@ const AdminPage = () => {
   );
 };
 
-export default AdminPage; 
+export default withAuth(AdminPage); 

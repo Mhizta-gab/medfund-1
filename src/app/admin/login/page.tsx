@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/context/AuthContext';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
 
-const AdminLogin = () => {
+const AdminLoginContent = () => {
   const router = useRouter();
   const { login } = useAuth();
   const [credentials, setCredentials] = useState({
@@ -90,6 +90,14 @@ const AdminLogin = () => {
         </form>
       </div>
     </div>
+  );
+};
+
+const AdminLogin = () => {
+  return (
+    <AuthProvider>
+      <AdminLoginContent />
+    </AuthProvider>
   );
 };
 

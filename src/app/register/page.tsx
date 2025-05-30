@@ -1,161 +1,62 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { SignUp } from '@clerk/nextjs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-const RegisterPage = () => {
-  const router = useRouter();
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  });
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-
-    setIsLoading(true);
-
-    try {
-      // In production, this would be an API call
-      // For now, we'll simulate a successful registration
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      router.push('/login');
-    } catch (err) {
-      setError('Registration failed. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+export default function RegisterPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Join MedFund to support healthcare campaigns
+    <div className="container mx-auto px-4 py-12">
+      <div className="max-w-4xl mx-auto grid gap-8 md:grid-cols-2">
+        <Card className="md:col-span-1 h-fit">
+          <CardHeader>
+            <CardTitle>Create your account</CardTitle>
+            <CardDescription>
+              Join MedFund to support and create medical campaigns
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <SignUp 
+              appearance={{
+                elements: {
+                  formButtonPrimary: 'bg-blue-600 hover:bg-blue-700 text-white',
+                  footerActionLink: 'text-blue-600 hover:text-blue-700',
+                }
+              }}
+              redirectUrl="/profile"
+            />
+          </CardContent>
+        </Card>
+        
+        <div className="hidden md:flex md:flex-col justify-center space-y-6">
+          <h2 className="text-3xl font-bold tracking-tight">Join the MedFund Community</h2>
+          <p className="text-gray-600 dark:text-gray-300">
+            When you create an account with MedFund, you're joining a community committed to revolutionizing medical fundraising through blockchain technology.
           </p>
+          <ul className="space-y-3">
+            <li className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              <span>Create your own medical fundraising campaigns</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              <span>Track your contributions transparently</span>
+            </li>
+            <li className="flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-500">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+              <span>Connect with verified healthcare professionals</span>
+            </li>
+          </ul>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="name" className="sr-only">
-                Full Name
-              </label>
-              <input
-                id="name"
-                name="name"
-                type="text"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Full Name"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label htmlFor="email" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                disabled={isLoading}
-              />
-            </div>
-            <div>
-              <label htmlFor="confirmPassword" className="sr-only">
-                Confirm Password
-              </label>
-              <input
-                id="confirmPassword"
-                name="confirmPassword"
-                type="password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Confirm Password"
-                value={formData.confirmPassword}
-                onChange={(e) =>
-                  setFormData({ ...formData, confirmPassword: e.target.value })
-                }
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                isLoading
-                  ? 'bg-blue-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700'
-              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500`}
-            >
-              {isLoading ? 'Creating account...' : 'Create account'}
-            </button>
-          </div>
-
-          <div className="text-center">
-            <p className="text-sm text-gray-600">
-              Already have an account?{' '}
-              <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500">
-                Sign in
-              </Link>
-            </p>
-          </div>
-        </form>
       </div>
     </div>
   );
-};
-
-export default RegisterPage; 
+} 

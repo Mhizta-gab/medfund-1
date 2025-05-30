@@ -1,0 +1,143 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+You are an expert developer proficient in TypeScript, React, Next.js, Tailwind CSS, Shadcn UI, Clerk, IPFS, and Cardano blockchain technologies (MeshSDK, Lucid). Your primary goal is to assist in developing the MedFund platform.
+
+**Code Style and Structure**
+
+*   Write concise, readable, and maintainable TypeScript code.
+*   Employ functional and declarative programming patterns; avoid classes for React components and general utilities.
+*   Prefer iteration and modularization over code duplication. Design reusable components and utility functions.
+*   Use descriptive variable and function names. For booleans, use auxiliary verbs (e.g., `isLoading`, `hasCampaignData`, `isWalletConnected`).
+*   Structure files logically:
+    *   Imports at the top, grouped by external libraries, then project modules.
+    *   Type/Interface definitions.
+    *   Component definition.
+    *   Sub-components or helper functions specific to the main component (if not large enough for their own file).
+    *   Styled components or constants if applicable.
+    *   Named export of the main component and any other necessary exports.
+*   Favor named exports for all modules, components, and functions to improve clarity and refactorability.
+*   Use lowercase with dashes for directory names (e.g., `src/components/campaign-cards`, `src/utils/date-helpers`). File names should be PascalCase for components (`CampaignCard.tsx`) and camelCase or PascalCase for non-component TS files (`ipfsManager.ts`, `PinataService.ts`).
+
+**TypeScript and Zod Usage**
+
+*   Use TypeScript for all new code. Enable strict mode and aim for strong type coverage.
+*   Prefer TypeScript `interface` for defining the shape of objects and props. Use `type` for unions, intersections, or more complex type definitions.
+*   Utilize Zod for all external data validation (API responses, form submissions) and for deriving types from schemas.
+    *   Example: Define Zod schemas for IPFS metadata structures (`CampaignMetadata`, `TestimonialMetadata`) and use `z.infer` for type safety.
+    *   Integrate Zod with React Hook Form for robust form validation.
+*   Avoid `enum`s; use string literal union types instead (e.g., `type CampaignStatus = 'active' | 'funded' | 'expired';`).
+*   Implement functional React components using TypeScript interfaces for their props (e.g., `interface MyComponentProps { title: string; }`).
+
+**Syntax and Formatting**
+
+*   Use the `function` keyword for standalone pure functions. For React components, use arrow functions for consistency with hooks if preferred, or `function` declarations.
+    *   `export const MyComponent: React.FC<Props> = (props) => { ... };`
+    *   `export function MyComponent(props: Props) { ... }` (Choose one style for components and be consistent).
+*   Write declarative JSX with a clear and readable structure. Indent props and children appropriately.
+*   Avoid unnecessary curly braces in JSX conditionals where a direct boolean expression or ternary operator is clearer for simple cases.
+*   Use Prettier and ESLint (configured in the project) to maintain consistent code formatting and catch common errors. Adhere to the project's linting rules.
+
+**UI and Styling (Tailwind CSS & Shadcn UI)**
+
+*   Utilize **Tailwind CSS** for all styling. Leverage its utility-first approach for rapid development and maintainable styles.
+*   Use **Shadcn UI** components (built upon Radix UI and Tailwind CSS) for common UI elements (Buttons, Cards, Modals, etc.). Customize them as needed via props and Tailwind classes.
+    *   Find components in `src/components/ui/`.
+    *   Use the `cn` utility function (from `clsx` and `tailwind-merge`) for conditionally applying classes.
+*   Implement responsive design with a mobile-first approach. Use Tailwind's responsive prefixes (e.g., `sm:`, `md:`, `lg:`).
+*   Ensure consistent theming (colors, spacing, typography) as defined in `tailwind.config.mjs` and `src/app/globals.css`.
+*   Organize custom, reusable UI components in `src/components/` (e.g., `src/components/campaigns/CampaignCard.tsx`). Domain-specific components should be further organized within subdirectories.
+
+**State Management**
+
+*   For global or shared state across multiple distant components, use **React Context API** (e.g., `AuthContext`, `BlockchainContext`, `WalletContext`).
+    *   Providers should be placed appropriately in the component tree, typically in `src/app/layout.tsx` or higher-level layout components.
+*   For local component state, use React Hooks (`useState`, `useReducer`).
+*   Minimize prop drilling by using Context or component composition effectively.
+*   Avoid direct DOM manipulation; let React manage the DOM based on state changes.
+
+**Data Fetching & Mutations**
+
+*   For client-side data fetching and mutations (e.g., interacting with Clerk, IPFS, or Cardano services):
+    *   Use `useEffect` for initial data loading if simple.
+    *   For more complex scenarios (caching, refetching, optimistic updates), consider abstracting logic into custom hooks (e.g., `useIPFS`, `useAuthWallet`).
+    *   Handle loading and error states explicitly to provide user feedback.
+*   Server Components and Server Actions in Next.js should be used where appropriate for data fetching and mutations that can run on the server, reducing client-side load.
+
+**Cardano Blockchain Integration (MeshSDK & Lucid)**
+
+*   Utilize **MeshSDK** (`@meshsdk/react`, `@meshsdk/core`) and **Lucid** (`@lucid-evolution/lucid`) for Cardano wallet interactions, transaction building, and smart contract communication.
+*   Blockchain-related logic is primarily located in `src/blockchain/`.
+    *   Contexts (`BlockchainContext.tsx`, `WalletContext.tsx`) manage wallet connections and blockchain provider instances.
+    *   Contract interaction logic resides in `src/blockchain/contracts/`.
+*   Ensure all interactions with wallets and the blockchain handle potential errors gracefully (e.g., user declining transaction, insufficient funds, network errors). Use `sonner` for user-friendly toast notifications.
+*   Follow best practices for security when handling private keys or sensitive operations (though client-side wallets manage keys).
+*   Refer to the official MeshSDK and Lucid documentation for detailed API usage.
+
+**IPFS Integration (Pinata)**
+
+*   Campaign data and related metadata are stored on IPFS, pinned via **Pinata**.
+*   The `IPFSManager` (`src/utils/ipfs/IPFSManager.ts`) and `PinataService` (`src/utils/ipfs/PinataService.ts`) encapsulate IPFS upload and retrieval logic.
+*   The main "database" is a JSON file on IPFS whose CID is updated with each change. This root CID must be tracked. The `scripts/manage-ipfs-db.ts` script helps manage this.
+*   Define clear schemas for all data stored on IPFS (currently TypeScript interfaces in `src/utils/ipfs/schemas/`). Consider migrating these to Zod schemas for validation before upload and after retrieval.
+*   Handle potential IPFS gateway errors or delays during data fetching.
+
+**Authentication (Clerk)**
+
+*   **Clerk** (`@clerk/nextjs`) is used for user authentication and management.
+*   Utilize Clerk's components (`<UserButton />`, `<SignInButton />`) and hooks (`useUser`, `useAuth`) for UI and logic.
+*   Protect routes using Clerk's middleware (`middleware.ts`) and/or client-side checks with `useUser`.
+*   Store user-specific, non-sensitive application data related to Clerk users if needed (e.g., user preferences tied to their Clerk ID).
+
+**Error Handling and Validation**
+
+*   Prioritize robust error handling and clear user feedback for all operations (API calls, form submissions, blockchain transactions).
+*   Handle errors and edge cases at the beginning of functions using guard clauses or early returns.
+*   For forms, use React Hook Form with Zod for client-side validation before submission. Provide clear, field-specific error messages.
+*   Log unexpected errors to the console for debugging. Use `sonner` for user-facing toast notifications.
+
+**Performance Optimization**
+
+*   Optimize for web performance.
+*   Use Next.js dynamic imports (`next/dynamic`) for code-splitting components that are not critical for the initial render.
+*   Implement lazy loading for images (`next/image` handles this well) and off-screen content.
+*   Optimize images: use appropriate formats (e.g., WebP), compress them, and provide `width` and `height` attributes to `next/image`.
+*   Memoize expensive computations or components using `React.memo`, `useMemo`, and `useCallback` where appropriate and benchmarks show a clear benefit.
+
+**Project Structure and Environment**
+
+*   Follow the established Next.js App Router project structure within `src/`:
+    *   `app/`: Contains routes, layouts, pages, and API route handlers.
+    *   `components/`: Shared React components.
+        *   `ui/`: Shadcn UI components.
+        *   Domain-specific components (e.g., `campaigns/`, `blockchain/`).
+    *   `context/`: React Context providers.
+    *   `hooks/`: Custom React Hooks.
+    *   `lib/`: General utility functions, constants.
+    *   `utils/`: More specific utilities (e.g., `ipfs/`).
+    *   `blockchain/`: Cardano-specific logic.
+    *   `scripts/`: Node.js scripts for development/management tasks.
+*   Use `.env` and `.env.local` for environment variable management. Prefix client-side accessible variables with `NEXT_PUBLIC_`.
+*   Follow patterns for environment-specific configurations in `next.config.ts`.
+
+**Key Conventions & No TODOs**
+
+*   Write descriptive and meaningful commit messages following conventional commit guidelines if possible (e.g., `feat:`, `fix:`, `docs:`, `refactor:`).
+*   Ensure code is clean, well-documented where necessary (especially for complex logic or public APIs), and follows these established coding standards.
+*   **Do not leave `// TODO:` comments in the codebase.** If a task needs to be done, create an issue in the project's issue tracker or complete it. If a temporary workaround is in place, document it clearly and link to the issue for its resolution.
+*   All new features or significant refactors should be covered by these guidelines.
+
+**Follow Official Documentation**
+
+*   Adhere to the official documentation for all key technologies: Next.js, React, TypeScript, Tailwind CSS, Shadcn UI, Clerk, MeshSDK, Lucid, Pinata, and Zod.
+*   Stay updated with their latest best practices and updates.
+
+**Output Expectations**
+
+*   **Code Examples:** When providing examples or writing new code, ensure they align with these guidelines.
+*   **Clarity and Correctness:** All code should be clear, correct, and aim for production readiness.
+*   **Best Practices:** Demonstrate adherence to best practices in performance, security, and maintainability.
+
+This set of rules should provide a solid foundation for developing the MedFund platform. Remember to keep this file updated as the project evolves and new patterns or technologies are adopted.

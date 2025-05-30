@@ -1,8 +1,24 @@
 "use client"
 
+import React, { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
 import Image from 'next/image';
-import { useState } from 'react';
+import { ScaleLoader } from 'react-spinners';
+import { FiUser, FiClock, FiHeart, FiAward, FiAlertCircle, FiCheck, FiExternalLink, FiMail, FiTwitter, FiFacebook, FiGlobe, FiFileText } from 'react-icons/fi';
+import { cn } from '@/utils';
+import DocumentViewer from '@/components/blockchain/DocumentViewer';
+import AddressDisplay from '@/components/blockchain/AddressDisplay';
+import { useCardanoWallet } from '@/blockchain/context/WalletContext';
+import { useBlockchain } from '@/blockchain/context/BlockchainContext';
+import { CampaignMetadata } from '@/utils/ipfs/schemas/CampaignMetadata';
+import { donateToCampaign, validateDonationAmount } from '@/blockchain/contracts/CampaignFunding';
+import { useIPFS } from '@/hooks/useIPFS';
+import ConnectWalletButton from '@/components/blockchain/ConnectWalletButton';
+import BlockchainStatus from '@/components/blockchain/BlockchainStatus';
+import ClientOnly from '@/components/ClientOnly';
+import CampaignDetail from '@/components/campaigns/CampaignDetail';
 
+<<<<<<< HEAD
 interface CampaignDetails {
   id: string;
   title: string;
@@ -94,128 +110,29 @@ export default function CampaignPage({ params }: { params: { id: string } }) {
 
   const progress = (campaignData.raisedAmount / campaignData.goalAmount) * 100;
 
+=======
+// Helper for date formatting
+const formatDate = (timestamp: number | undefined) => {
+  if (!timestamp) return 'N/A';
+  return new Date(timestamp).toLocaleDateString('en-US', { 
+    year: 'numeric', month: 'long', day: 'numeric' 
+  });
+};
+
+export default function CampaignPage() {
+>>>>>>> f46bf8365b3460f909ca9053856f23699efd83cc
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content */}
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <div className="relative h-96 w-full">
-              <Image
-                src={campaignData.imageUrl}
-                alt={campaignData.title}
-                fill
-                className="object-cover"
-              />
-              {campaignData.verified && (
-                <div className="absolute top-4 right-4 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                  Verified Campaign
-                </div>
-              )}
-            </div>
-            <div className="p-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-4">{campaignData.title}</h1>
-              <p className="text-gray-600 mb-6">{campaignData.description}</p>
-
-              <div className="border-t border-gray-200 pt-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Patient Information</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-gray-500">Name</p>
-                    <p className="font-medium">{campaignData.patientInfo.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Age</p>
-                    <p className="font-medium">{campaignData.patientInfo.age} years</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Medical Condition</p>
-                    <p className="font-medium">{campaignData.patientInfo.condition}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Hospital</p>
-                    <p className="font-medium">{campaignData.patientInfo.hospital}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t border-gray-200 pt-6 mt-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Campaign Updates</h2>
-                <div className="space-y-4">
-                  {campaignData.updates.map((update, index) => (
-                    <div key={index} className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-gray-500 mb-1">{update.date}</p>
-                      <p className="text-gray-700">{update.content}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+    <ClientOnly
+      fallback={
+        <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-b from-gray-50 to-white dark:from-gray-950 dark:to-gray-900">
+          <div className="text-center">
+            <ScaleLoader color="#3B82F6" height={50} width={6} radius={4} margin={4} />
+            <p className="mt-4 text-gray-600 dark:text-gray-300 text-lg">Loading campaign details...</p>
           </div>
         </div>
-
-        {/* Sidebar */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow p-6 sticky top-8">
-            <div className="mb-6">
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-500">Raised</span>
-                <span className="font-medium">{campaignData.raisedAmount} ADA</span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
-                <div
-                  className="bg-blue-600 rounded-full h-2"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Goal</span>
-                <span className="font-medium">{campaignData.goalAmount} ADA</span>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <p className="text-center text-sm text-gray-500 mb-4">
-                {campaignData.daysLeft} days left to donate
-              </p>
-              <input
-                type="number"
-                value={donationAmount}
-                onChange={(e) => setDonationAmount(e.target.value)}
-                placeholder="Enter amount in ADA"
-                className="w-full px-4 py-2 border border-gray-300 rounded-md mb-4"
-              />
-              <button
-                onClick={handleDonate}
-                className="w-full bg-blue-600 text-white py-3 px-4 rounded-md font-medium hover:bg-blue-700"
-              >
-                Donate Now
-              </button>
-            </div>
-
-            <div className="border-t border-gray-200 pt-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Recent Donors</h3>
-              <div className="space-y-4">
-                {campaignData.donors.map((donor, index) => (
-                  <div key={index} className="flex justify-between items-center">
-                    <div className="flex items-center">
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-900">
-                          {donor.address.slice(0, 8)}...
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {new Date(donor.timestamp).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <p className="text-sm font-medium text-gray-900">{donor.amount} ADA</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      }
+    >
+      <CampaignDetail />
+    </ClientOnly>
   );
 }

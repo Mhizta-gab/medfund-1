@@ -1,36 +1,120 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MedFund - Medical Crowdfunding on Cardano
+
+MedFund is a decentralized platform for medical crowdfunding built on the Cardano blockchain, designed to provide transparent and secure fundraising for medical expenses.
+
+## Features
+
+- **Cardano Wallet Integration**: Connect with Cardano wallets like Eternl, Nami, Lace, etc.
+- **Clerk Authentication**: Secure authentication with social login options
+- **Fundraising Campaigns**: Create and contribute to medical fundraising campaigns
+- **Transparent Funding**: All transactions are recorded on the Cardano blockchain
+- **Governance**: Community governance for platform decisions
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js 18.x or higher
+- pnpm (recommended) or npm
+- Cardano wallet extension (Eternl, Nami, Lace, etc.)
+- Blockfrost API key (for Cardano blockchain interaction)
+- Clerk account (for authentication)
+
+### Installation
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/medfund.git
+   cd medfund
+   ```
+
+2. Install dependencies using pnpm:
+   ```bash
+   pnpm install
+   ```
+
+3. Create a `.env.local` file in the root directory with the following variables:
+   ```
+   # Pinata IPFS API Configuration
+   NEXT_PUBLIC_PINATA_JWT=your_pinata_jwt_token_here
+   NEXT_PUBLIC_IPFS_GATEWAY_URL=https://gateway.pinata.cloud/ipfs/
+
+   # Cardano Blockchain Configuration
+   NEXT_PUBLIC_NETWORK=preprod
+   NEXT_PUBLIC_BLOCKFROST_API_KEY=your_blockfrost_api_key_here
+
+   # Mesh SDK Configuration
+   NEXT_PUBLIC_MESH_CLIENT_ID=your_mesh_client_id_here
+   NEXT_PUBLIC_MESH_AUTO_CONNECT=true
+
+   # Clerk Authentication
+   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+   CLERK_SECRET_KEY=your_clerk_secret_key
+   NEXT_PUBLIC_CLERK_SIGN_IN_URL=/login
+   NEXT_PUBLIC_CLERK_SIGN_UP_URL=/register
+   NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/profile
+   NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/profile
+   ```
+
+4. Start the development server:
+   ```bash
+   pnpm dev
+   ```
+
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Wallet Connection
+
+MedFund supports seamless wallet connection with the following features:
+
+- **One-Click Connection**: Connect your Cardano wallet with a single click
+- **Auto Reconnect**: Automatically reconnect to your last used wallet
+- **Preferred Wallet**: Save your preferred wallet in your user profile
+- **Integration with Clerk**: Connect your blockchain identity with your authentication profile
+
+### Supported Wallets
+
+- Eternl
+- Nami
+- Lace
+- Flint
+- GeroWallet
+- Typhon
+- And other CIP-30 compliant wallets
+
+## Development
+
+### Project Structure
+
+```
+medfund/
+├── public/          # Static assets
+├── src/
+│   ├── app/         # Next.js App Router pages
+│   ├── blockchain/  # Blockchain integration
+│   │   ├── context/ # Blockchain context providers
+│   │   └── contracts/ # Smart contract interactions
+│   ├── components/  # UI components
+│   ├── hooks/       # Custom React hooks
+│   └── utils/       # Utility functions
+├── .env.local       # Environment variables
+└── README.md        # Project documentation
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Key Technologies
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Next.js**: React framework with App Router
+- **Mesh SDK**: Cardano wallet integration
+- **Lucid**: Cardano transaction library
+- **Clerk**: Authentication and user management
+- **Tailwind CSS**: Utility-first CSS framework
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## License
 
-## Learn More
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-To learn more about Next.js, take a look at the following resources:
+## Acknowledgments
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Cardano Foundation
+- Mesh SDK Team
+- Blockfrost API
